@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { bodyFont } from "./lib/theme.js";
 import { seedProducts, seedOrders, seedCustomers } from "./lib/seedData.js";
@@ -13,17 +14,12 @@ import StoreScreen from "./screens/Store.jsx";
 /* ---------------------------------- Root app ---------------------------------- */
 
 export default function BusinessAutomationSystem() {
-  const [screen, setScreen] = useState("landing"); // landing | login | admin | store
+  const [screen, setScreen] = useState("landing");
   const [products, setProducts] = useState(seedProducts());
   const [orders, setOrders] = useState(seedOrders());
   const [placedOrders, setPlacedOrders] = useState([]);
   const [customers, setCustomers] = useState(seedCustomers());
 
-  // On first load: pull live data from Supabase (if VITE_SUPABASE_URL/KEY are
-  // set). First-ever run with empty tables gets seeded with the built-in
-  // sample data so the dashboard isn't blank. If Supabase isn't configured,
-  // this silently does nothing and the app keeps using the in-memory sample
-  // data above, exactly like before.
   useEffect(() => {
     (async () => {
       await seedIfEmpty(seedProducts(), seedOrders());
@@ -33,9 +29,6 @@ export default function BusinessAutomationSystem() {
     })();
   }, []);
 
-  // Single source of truth for a placed order: decrements shared inventory,
-  // adds it to the admin's order list, the shopper's own tracking list, and
-  // registers a new customer record automatically if this name hasn't ordered before.
   const handlePlaceOrder = (order) => {
     setProducts((ps) => ps.map((p) => {
       const line = order.items.find((it) => it.productId === p.id);
