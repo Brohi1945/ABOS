@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Sidebar, Topbar } from "../components/layout";
 import { bodyFont } from "../lib/theme";
@@ -99,6 +98,7 @@ export default function AdminApp({ section, onSectionChange, onLogout, onGoStore
           onNotifClick={() => setNotifOpen((o) => !o)}
           notifOpen={notifOpen}
           notifications={notifications}
+          onBack={section !== "dashboard" ? () => onSectionChange("dashboard") : undefined}
         />
         <div className="p-4 sm:p-6 max-w-6xl">
           {section === "dashboard" && <DashboardView orders={orders} products={products} customers={customers} onGoTo={onSectionChange} />}
