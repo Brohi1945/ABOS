@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Toaster } from "react-hot-toast";
 import { bodyFont } from "./lib/theme";
 import { seedProducts, seedOrders, seedCustomers } from "./lib/seedData";
 import { genId } from "./lib/utils";
@@ -10,6 +11,7 @@ import LandingScreen from "./screens/Landing";
 import LoginScreen from "./screens/Login";
 import AdminApp from "./screens/AdminApp";
 import StoreScreen from "./screens/Store";
+import { TOAST_POSITION } from "./animations/config";   // 👈 centralised position
 
 export default function BusinessAutomationSystem() {
   const [screenStack, setScreenStack] = useState(["landing"]);
@@ -120,6 +122,8 @@ export default function BusinessAutomationSystem() {
 
   return (
     <div style={{ fontFamily: bodyFont }}>
+      <Toaster position={TOAST_POSITION} gutter={8} />   {/* 👈 centralised position */}
+
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600&display=swap');
         input::placeholder, textarea::placeholder { color: #94A3B8; }
