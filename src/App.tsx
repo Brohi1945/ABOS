@@ -5,13 +5,17 @@ import { seedProducts, seedOrders, seedCustomers } from "./lib/seedData";
 import { genId } from "./lib/utils";
 import { notifyNewOrder, notifyLowStock } from "./lib/notify";
 import {
-  fetchProducts, insertOrder, updateProductRow, fetchOrders, seedIfEmpty,
+  fetchProducts,
+  insertOrder,
+  updateProductRow,
+  fetchOrders,
+  seedIfEmpty,
 } from "./supabaseClient";
 import LandingScreen from "./screens/Landing";
 import LoginScreen from "./screens/Login";
 import AdminApp from "./screens/AdminApp";
 import StoreScreen from "./screens/Store";
-import { TOAST_POSITION } from "./animations/config";   // 👈 centralised position
+import { TOAST_POSITION } from "./animations/config";
 
 export default function BusinessAutomationSystem() {
   const [screenStack, setScreenStack] = useState(["landing"]);
@@ -32,16 +36,6 @@ export default function BusinessAutomationSystem() {
     });
   };
 
-  // Admin sections are two-tiered for history purposes: "dashboard" is the base
-  // level for the whole admin panel, and any other section sits one level deeper.
-  // - dashboard -> subsection: a real step deeper, so it pushes a history entry.
-  // - subsection -> dashboard: a real step up, so it goes through goBack()/
-  //   window.history.back() — the exact same path the hardware back button uses.
-  //   This is what keeps the in-app "back to dashboard" control and the phone's
-  //   back button in sync: they now do the literal same thing.
-  // - subsection -> subsection (e.g. Orders -> Inventory via the sidebar) is a
-  //   lateral move and just replaces the current entry, so the back-stack
-  //   doesn't balloon on every sidebar click.
   const switchSection = (next) => {
     const current = screenStack[screenStack.length - 1];
     const isCurrentDashboard = current === "admin:dashboard";
@@ -57,8 +51,6 @@ export default function BusinessAutomationSystem() {
     }
 
     if (!isCurrentDashboard && isNextDashboard) {
-      // Let the popstate handler below pop the stack, so this behaves
-      // identically to pressing the hardware/browser back button.
       window.history.back();
       return;
     }
@@ -104,11 +96,13 @@ export default function BusinessAutomationSystem() {
       const newStock = Math.max(0, p.stock - line.qty);
       if (newStock <= p.threshold && p.stock > p.threshold) notifyLowStock(p, newStock);
     });
-    setProducts((ps) => ps.map((p) => {
-      const line = order.items.find((it) => it.productId === p.id);
-      if (line) updateProductRow(p.id, { stock: Math.max(0, p.stock - line.qty) });
-      return line ? { ...p, stock: Math.max(0, p.stock - line.qty) } : p;
-    }));
+    setProducts((ps) =>
+      ps.map((p) => {
+        const line = order.items.find((it) => it.productId === p.id);
+        if (line) updateProductRow(p.id, { stock: Math.max(0, p.stock - line.qty) });
+        return line ? { ...p, stock: Math.max(0, p.stock - line.qty) } : p;
+      })
+    );
     setOrders((os) => [order, ...os]);
     setPlacedOrders((os) => [order, ...os]);
     insertOrder(order);
@@ -116,13 +110,24 @@ export default function BusinessAutomationSystem() {
     setCustomers((cs) => {
       const exists = cs.some((c) => c.name.toLowerCase() === (order.customer || "").toLowerCase());
       if (exists || !order.customer) return cs;
-      return [{ id: genId("C"), name: order.customer, phone: order.phone || "", email: "", orders: 0, spent: 0, lastOrder: order.date }, ...cs];
+      return [
+        {
+          id: genId("C"),
+          name: order.customer,
+          phone: order.phone || "",
+          email: "",
+          orders: 0,
+          spent: 0,
+          lastOrder: order.date,
+        },
+        ...cs,
+      ];
     });
   };
 
   return (
     <div style={{ fontFamily: bodyFont }}>
-      <Toaster position={TOAST_POSITION} gutter={8} />   {/* 👈 centralised position */}
+      <Toaster position={TOAST_POSITION} gutter={8} />
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600&display=swap');
@@ -137,7 +142,10 @@ export default function BusinessAutomationSystem() {
         <LandingScreen onLogin={() => navigate("login")} onBrowseStore={() => navigate("store")} />
       )}
       {screen === "login" && (
-        <LoginScreen onBack={goBack} onLoginAs={(role) => navigate(role === "admin" ? "admin:dashboard" : "store")} />
+        <LoginScreen
+          onBack={goBack}
+          onLoginAs={(role) => navigate(role === "admin" ? "admin:dashboard" : "store")}
+        />
       )}
       {isAdmin && (
         <AdminApp
