@@ -5,14 +5,33 @@ interface UseCountUpOptions {
   delay?: number;
 }
 
+// Matches formatted numbers like "Rs 12,450", "$99.50", "23.4%", "1,204" —
+// a plain number optionally wrapped in a currency prefix and/or a percent
+// suffix. Anything else (product names, statuses, "—", etc.) is treated as
+// non-numeric text and shown exactly as given, with no count-up animation.
+const FORMATTED_NUMBER_RE = /^(Rs\s?|\$)?([\d,]+(?:\.\d+)?)(%)?$/;
+
 export function useCountUp(
   target: number | string,
   options: UseCountUpOptions = {}
 ): string | number {
   const { duration = 800, delay = 0 } = options;
 
-  const numericTarget = typeof target === "string"
-    ? parseFloat(target.replace(/[^0-9.-]/g, "")) || 0
+  const isString = typeof target === "string";
+  const match = isString ? target.trim().match(FORMATTED_NUMBER_RE) : null;
+
+  // If it's a string we don't recognise as a formatted number (e.g. a
+  // product name like "Basmati Rice 5kg" or a dash placeholder "—"), skip
+  // animation entirely and just show it as given — don't try to parse a
+  // stray digit out of it.
+  const canAnimate = !isString || !!match;
+
+  const prefix = match?.[1] || "";
+  const suffix = match?.[3] || "";
+  const numericTarget = isString
+    ? match
+      ? parseFloat(match[2].replace(/,/g, "")) || 0
+      : 0
     : target;
 
   const [value, setValue] = useState(0);
@@ -21,7 +40,7 @@ export function useCountUp(
   const frameRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (numericTarget === 0) {
+    if (!canAnimate || numericTarget === 0) {
       setValue(0);
       setStarted(false);
       return;
@@ -34,10 +53,10 @@ export function useCountUp(
     }, delay);
 
     return () => clearTimeout(timer);
-  }, [numericTarget, delay]);
+  }, [numericTarget, delay, canAnimate]);
 
   useEffect(() => {
-    if (!started) return;
+    if (!started || !canAnimate) return;
 
     const animate = (timestamp: number) => {
       if (startTimeRef.current === null) {
@@ -68,10 +87,15 @@ export function useCountUp(
         cancelAnimationFrame(frameRef.current);
       }
     };
-  }, [started, numericTarget, duration]);
+  }, [started, numericTarget, duration, canAnimate]);
 
-  if (typeof target === "string") {
-    return value.toLocaleString();
+  if (!canAnimate) {
+    // Non-numeric string — return exactly as given (e.g. product name).
+    return target as string;
+  }
+
+  if (isString) {
+    return `${prefix}${value.toLocaleString()}${suffix}`;
   }
 
   return value;
