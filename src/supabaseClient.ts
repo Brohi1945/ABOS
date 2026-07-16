@@ -3,21 +3,16 @@
 //  Env vars needed (set in Vercel → Settings → Environment Variables):
 //    VITE_SUPABASE_URL       — your Supabase project URL
 //    VITE_SUPABASE_ANON_KEY  — your Supabase project's anon/public key
-//  Run supabase_schema.sql once in Supabase → SQL Editor before using this.
 // ============================================================
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://akjugxzvexcpslhzvuhz.supabase.co";
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFranVneHp2ZXhjcHNsaHp2dWh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwMDcwNDcsImV4cCI6MjA5OTU4MzA0N30.SYWWFeDA9eHawvvJu3qBFZxpJvAThGAKTrPagy2Thuo";
 
 export const supabase =
   supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
-// If the env vars aren't set yet, `supabase` is null and every helper below
-// quietly no-ops so the app keeps working exactly like before (in-memory only).
 const isReady = () => !!supabase;
-
-/* ---------------------------------- Products ---------------------------------- */
 
 export async function fetchProducts() {
   if (!isReady()) return null;
@@ -47,8 +42,6 @@ export async function deleteProductRow(id) {
   if (error) console.error("deleteProductRow error:", error.message);
 }
 
-/* ---------------------------------- Orders ---------------------------------- */
-
 export async function fetchOrders() {
   if (!isReady()) return null;
   const { data, error } = await supabase
@@ -74,8 +67,6 @@ export async function updateOrderStatusRow(id, status) {
   if (error) console.error("updateOrderStatusRow error:", error.message);
 }
 
-/* ---------------------------------- One-time seeding ---------------------------------- */
-
 export async function seedIfEmpty(seedProductsList, seedOrdersList) {
   if (!isReady()) return;
   const { count: productCount } = await supabase
@@ -88,6 +79,6 @@ export async function seedIfEmpty(seedProductsList, seedOrdersList) {
     .from("orders")
     .select("*", { count: "exact", head: true });
   if (!orderCount) {
-    await supabase.from("orders").insert(seedOrdersList);
+    await supabase.from("orders").insert(orderCount ? [] : seedOrdersList);
   }
 }
