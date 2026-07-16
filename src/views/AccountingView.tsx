@@ -4,6 +4,7 @@ import { ResponsiveContainer, XAxis, YAxis, Tooltip, BarChart, Bar } from "recha
 import { displayFont } from "../lib/theme";
 import { money, computeWeeklyTrend } from "../lib/utils";
 import { Card, StatCard } from "../components/ui";
+import { CHART_ANIMATION } from "../animations/config";   // 👈 added
 
 interface AccountingViewProps {
   orders: any[];
@@ -46,8 +47,9 @@ export default function AccountingView({ orders, products }: AccountingViewProps
                 labelStyle={{ color: "#8B8F9C" }}
                 itemStyle={{ color: "#E8E9ED" }}
               />
-              <Bar dataKey="sales" fill="#C9A44C" radius={[6, 6, 0, 0]} name="Revenue" />
-              <Bar dataKey="cost" fill="#22C55E" radius={[6, 6, 0, 0]} name="Cost" />
+              {/* 👇 using CHART_ANIMATION spread */}
+              <Bar dataKey="sales" fill="#C9A44C" radius={[6, 6, 0, 0]} name="Revenue" {...CHART_ANIMATION} />
+              <Bar dataKey="cost" fill="#22C55E" radius={[6, 6, 0, 0]} name="Cost" {...CHART_ANIMATION} />
             </BarChart>
           </ResponsiveContainer>
         </div>
