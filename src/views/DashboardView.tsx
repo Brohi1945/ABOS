@@ -18,7 +18,7 @@ export default function DashboardView({ orders, products, customers, onGoTo }) {
     : null;
   const ordersToday = orders.filter((o) => {
     const d = new Date(o.date);
-    return !isNaN(d) && d.toDateString() === new Date().toDateString();
+    return !isNaN(d.getTime()) && d.toDateString() === new Date().toDateString();
   }).length;
 
   return (
