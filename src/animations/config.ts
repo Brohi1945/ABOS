@@ -6,7 +6,15 @@
 //  sirf neeche wale numbers change karo — poori app update ho jayegi.
 // ============================================================
 
- = "texport const DURATION = {
+" as // ============================================================
+//  ANIMATION CONTROL CENTER
+//  Pura app ka animation "feel" yahan se control hota hai.
+//  Kahin bhi duration/easing hardcode NAHI karni — hamesha
+//  yahan se import karo. Kal agar speed/style badalni ho,
+//  sirf neeche wale numbers change karo — poori app update ho jayegi.
+// ============================================================
+
+export const DURATION = {
   fast: 0.15,
   base: 0.18,
   medium: 0.22,
