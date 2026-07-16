@@ -1,21 +1,9 @@
 import React from "react";
 import {
-  LayoutDashboard, ShoppingCart, Package, Users, Wallet, Megaphone, Bot, Barcode,
-  Search, Bell, ChevronDown, LogOut, Menu, Sparkles, ShoppingBag, PieChart, ArrowLeft,
+  Search, Bell, ChevronDown, LogOut, Menu, Sparkles, ShoppingBag, ArrowLeft,
 } from "lucide-react";
 import { displayFont } from "../lib/theme";
-
-const NAV_ITEMS = [
-  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { key: "orders", label: "Orders", icon: ShoppingCart },
-  { key: "inventory", label: "Inventory", icon: Package },
-  { key: "customers", label: "Customers", icon: Users },
-  { key: "pos", label: "POS / Retail", icon: Barcode },
-  { key: "accounting", label: "Accounting", icon: Wallet },
-  { key: "insights", label: "Business Intelligence", icon: PieChart },
-  { key: "marketing", label: "Marketing", icon: Megaphone },
-  { key: "assistant", label: "AI Assistant", icon: Bot },
-];
+import { NAV_ITEMS } from "../config/app.config";
 
 interface SidebarProps {
   active: string;
