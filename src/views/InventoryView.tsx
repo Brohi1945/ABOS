@@ -58,7 +58,11 @@ export default function InventoryView({ products, onAdd, onEdit, onDelete }) {
   const [query, setQuery] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(null);
 
-  const filtered = products.filter((p) => p.name.toLowerCase().includes(query.toLowerCase()) || p.barcode.includes(query));
+  // Defensive: some products (especially older ones synced from Supabase
+  // before "barcode" was required) may not have a barcode value. Calling
+  // .includes() directly on undefined crashes the whole app with no
+  // error boundary to catch it — hence "(p.barcode || "")".
+  const filtered = products.filter((p) => p.name.toLowerCase().includes(query.toLowerCase()) || (p.barcode || "").includes(query));
 
   return (
     <div className="space-y-4">
