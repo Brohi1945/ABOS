@@ -10,6 +10,20 @@ interface AssistantAction {
   type: string;
   items?: { productId: string; qty: number }[];
   customer?: { name: string; phone: string; address: string };
+  // add_product
+  name?: string;
+  category?: string;
+  price?: number;
+  cost?: number;
+  stock?: number;
+  threshold?: number;
+  barcode?: string;
+  // edit_product / delete_product
+  productId?: string;
+  fields?: Record<string, any>;
+  // update_order_status
+  orderId?: string;
+  status?: string;
 }
 
 export async function callClaude(systemPrompt: string, history: ChatMessage[], userText: string): Promise<string> {
