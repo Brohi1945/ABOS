@@ -1,7 +1,7 @@
 import React from "react";
 import {
   LayoutDashboard, ShoppingCart, Package, Users, Wallet, Megaphone, Bot, Barcode,
-  Search, Bell, ChevronDown, LogOut, Menu, Sparkles, ShoppingBag, PieChart,
+  Search, Bell, ChevronDown, LogOut, Menu, Sparkles, ShoppingBag, PieChart, ArrowLeft,
 } from "lucide-react";
 import { displayFont } from "../lib/theme";
 
@@ -98,12 +98,23 @@ interface TopbarProps {
   onNotifClick: () => void;
   notifOpen: boolean;
   notifications: { title: string; note: string }[];
+  onBack?: () => void;
 }
 
-export function Topbar({ title, onMenuClick, notifCount, onNotifClick, notifOpen, notifications }: TopbarProps) {
+export function Topbar({ title, onMenuClick, notifCount, onNotifClick, notifOpen, notifications, onBack }: TopbarProps) {
   return (
     <div className="sticky top-0 z-30 bg-[#0B0D12]/90 backdrop-blur-md border-b border-[rgba(255,255,255,0.06)]">
       <div className="flex items-center gap-3 px-4 sm:px-6 py-3.5">
+
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="w-9 h-9 rounded-lg bg-[#14171F] border border-[rgba(255,255,255,0.06)] flex items-center justify-center text-[#C7C9D1] shrink-0"
+            aria-label="Back to Dashboard"
+          >
+            <ArrowLeft size={17} />
+          </button>
+        )}
 
         <button
           onClick={onMenuClick}
