@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sidebar, Topbar } from "../components/layout";
@@ -5,6 +6,7 @@ import { bodyFont } from "../lib/theme";
 import { money, genId } from "../lib/utils";
 import { seedCampaigns } from "../lib/seedData";
 import { notifyLowStock } from "../lib/notify";
+import { NAV_ITEMS } from "../config/app.config";
 import {
   insertProduct,
   updateProductRow,
@@ -150,17 +152,9 @@ export default function AdminApp({
     insertOrder(newOrder);
   };
 
-  const titles = {
-    dashboard: "Dashboard",
-    orders: "Orders",
-    inventory: "Inventory",
-    customers: "Customers",
-    pos: "POS / Retail",
-    accounting: "Accounting",
-    insights: "Business Intelligence",
-    marketing: "Marketing",
-    assistant: "AI Assistant",
-  };
+  // Section title now comes from NAV_ITEMS (src/config/app.config.ts) —
+  // no separate list to keep in sync when a label changes.
+  const sectionTitle = NAV_ITEMS.find((item) => item.key === section)?.label || "Dashboard";
 
   const renderView = () => {
     switch (section) {
@@ -216,7 +210,7 @@ export default function AdminApp({
       />
       <div className="lg:pl-64">
         <Topbar
-          title={titles[section]}
+          title={sectionTitle}
           onMenuClick={() => setSidebarOpen(true)}
           notifCount={notifications.length}
           onNotifClick={() => setNotifOpen((o) => !o)}
