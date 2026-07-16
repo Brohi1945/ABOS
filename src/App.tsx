@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { bodyFont } from "./lib/theme";
 import { seedProducts, seedOrders, seedCustomers } from "./lib/seedData";
@@ -24,8 +23,25 @@ export default function BusinessAutomationSystem() {
   const [customers, setCustomers] = useState(seedCustomers());
 
   const navigate = (next) => {
-    setScreenStack((s) => [...s, next]);
-    window.history.pushState({ depth: screenStack.length + 1 }, "");
+    setScreenStack((s) => {
+      const ns = [...s, next];
+      window.history.pushState({ depth: ns.length }, "");
+      return ns;
+    });
+  };
+
+  // Lateral move: switches the current top of the stack (e.g. Dashboard -> Orders
+  // inside the admin panel) WITHOUT growing the browser history stack. Only real
+  // screen transitions (login -> admin, admin -> store, etc.) should push a new
+  // history entry; otherwise the back-stack balloons on every sidebar click and
+  // can desync from React state after a mobile tab reload/suspend, causing the
+  // hardware back button to jump straight past Dashboard to Login.
+  const switchSection = (next) => {
+    setScreenStack((s) => {
+      const ns = [...s.slice(0, -1), next];
+      window.history.replaceState({ depth: ns.length }, "");
+      return ns;
+    });
   };
 
   const goBack = () => {
@@ -98,7 +114,7 @@ export default function BusinessAutomationSystem() {
       {isAdmin && (
         <AdminApp
           section={adminSection}
-          onSectionChange={(s) => navigate("admin:" + s)}
+          onSectionChange={(s) => switchSection("admin:" + s)}
           onLogout={() => resetTo("landing")}
           onGoStore={() => navigate("store")}
           products={products}
