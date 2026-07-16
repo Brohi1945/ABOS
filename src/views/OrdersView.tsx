@@ -1,11 +1,10 @@
+
 import React, { useState } from "react";
 import { ShoppingCart, Filter, Download, ChevronRight } from "lucide-react";
-import { displayFont } from "../lib/theme.js";
+import { displayFont } from "../lib/theme";
 import { money } from "../lib/utils";
-import { STATUS_META } from "../lib/seedData.js";
-import { Card, Badge, StatusBadge, Button, Drawer, EmptyState } from "../components/ui.jsx";
-
-/* ---------------------------------- Orders view ---------------------------------- */
+import { STATUS_META } from "../lib/seedData";
+import { Card, Badge, StatusBadge, Button, Drawer, EmptyState } from "../components/ui";
 
 export default function OrdersView({ orders, onUpdateStatus }) {
   const [filter, setFilter] = useState("all");
