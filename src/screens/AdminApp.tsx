@@ -89,7 +89,7 @@ export default function AdminApp({ onLogout, onGoStore, products, setProducts, o
   };
 
   return (
-    <div className="min-h-screen bg-slate-50" style={{ fontFamily: bodyFont }}>
+    <div className="min-h-screen bg-[#0B0D12]" style={{ fontFamily: bodyFont }}>
       <Sidebar active={section} onSelect={setSection} open={sidebarOpen} onClose={() => setSidebarOpen(false)} lowStockCount={lowStock.length} onLogout={onLogout} onGoStore={onGoStore} />
       <div className="lg:pl-64">
         <Topbar
