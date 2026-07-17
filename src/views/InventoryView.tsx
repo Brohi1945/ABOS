@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Package, Search, Plus, Pencil, Trash2 } from "lucide-react";
+import { Package, Search, Plus, Pencil, Trash2, Users } from "lucide-react";
 import { displayFont } from "../lib/theme";
 import { money } from "../lib/utils";
 import { CATEGORIES } from "../lib/seedData";
 import { Card, Badge, Button, Modal, Field, inputCls, EmptyState } from "../components/ui";
 import { SkeletonTable } from "../components/Skeleton";
+import { fetchWaitlist } from "../supabaseClient";
 
 interface ProductFormProps {
   initial?: any;
@@ -94,6 +95,18 @@ export default function InventoryView({ products, onAdd, onEdit, onDelete }: Inv
   const [query, setQuery] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [waitlistFor, setWaitlistFor] = useState<any>(null);
+  const [waitlistEntries, setWaitlistEntries] = useState<any[]>([]);
+  const [waitlistLoading, setWaitlistLoading] = useState(false);
+
+  const openWaitlist = (product: any) => {
+    setWaitlistFor(product);
+    setWaitlistLoading(true);
+    fetchWaitlist(product.id).then((entries) => {
+      setWaitlistEntries(entries || []);
+      setWaitlistLoading(false);
+    });
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 600);
@@ -184,6 +197,15 @@ export default function InventoryView({ products, onAdd, onEdit, onDelete }: Inv
                     </td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center justify-end gap-1">
+                        {p.stock === 0 && (
+                          <button
+                            onClick={() => openWaitlist(p)}
+                            title="View waitlist"
+                            className="w-8 h-8 rounded-lg hover:bg-indigo-500/10 flex items-center justify-center text-[#8B8F9C] hover:text-indigo-400"
+                          >
+                            <Users size={14} />
+                          </button>
+                        )}
                         <button
                           onClick={() => setModal({ mode: "edit", product: p })}
                           className="w-8 h-8 rounded-lg hover:bg-white/5 flex items-center justify-center text-[#8B8F9C]"
@@ -246,6 +268,34 @@ export default function InventoryView({ products, onAdd, onEdit, onDelete }: Inv
                 Delete
               </Button>
             </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal open={!!waitlistFor} onClose={() => setWaitlistFor(null)} title={waitlistFor ? `Waitlist — ${waitlistFor.name}` : "Waitlist"} width={420}>
+        {waitlistLoading ? (
+          <div className="text-sm text-[#8B8F9C] py-6 text-center">Loading…</div>
+        ) : waitlistEntries.length === 0 ? (
+          <EmptyState icon={Users} title="No one waiting" note="Jab koi customer is product ke liye waitlist join karega, yahan dikhega." />
+        ) : (
+          <div className="space-y-2">
+            {waitlistEntries.map((w, i) => (
+              <div key={w.id} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl bg-[#1B1F2A] border border-[rgba(255,255,255,0.06)]">
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-[#E8E9ED] truncate">
+                    #{i + 1} {w.customer_name}
+                  </div>
+                  <div className="text-[11px] text-[#8B8F9C]">{w.phone} · {w.qty} unit(s)</div>
+                </div>
+                <Badge
+                  tone={
+                    w.status === "waiting" ? "slate" : w.status === "notified" ? "amber" : w.status === "converted" ? "green" : "red"
+                  }
+                >
+                  {w.status}
+                </Badge>
+              </div>
+            ))}
           </div>
         )}
       </Modal>
