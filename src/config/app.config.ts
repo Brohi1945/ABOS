@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, ShoppingCart, Package, Users, Barcode, Wallet, PieChart, Megaphone, Bot,
-  Clock, CheckCircle2, PackageCheck, XCircle,
+  Clock, CheckCircle2, PackageCheck, XCircle, ListChecks,
 } from "lucide-react";
 
 // ============================================================
@@ -19,6 +19,7 @@ export const NAV_ITEMS = [
   { key: "orders", label: "Orders", icon: ShoppingCart },
   { key: "inventory", label: "Inventory", icon: Package },
   { key: "customers", label: "Customers", icon: Users },
+  { key: "waitlist", label: "Waitlist", icon: ListChecks },
   { key: "pos", label: "POS / Retail", icon: Barcode },
   { key: "accounting", label: "Accounting", icon: Wallet },
   { key: "insights", label: "Business Intelligence", icon: PieChart },
