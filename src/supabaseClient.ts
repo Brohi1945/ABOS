@@ -68,8 +68,6 @@ export async function updateOrderStatusRow(id, status) {
 }
 
 // ---- Waitlist ------------------------------------------------
-// (requires the `waitlist` table + `reserved_stock` column on `products` —
-// see supabase/migrations/0001_waitlist.sql)
 
 export async function fetchWaitlist(productId) {
   if (!isReady()) return [];
@@ -126,6 +124,12 @@ export async function fetchExpiredReservations() {
     return [];
   }
   return data;
+}
+
+export async function deleteWaitlistRow(id) {
+  if (!isReady()) return;
+  const { error } = await supabase.from("waitlist").delete().eq("id", id);
+  if (error) console.error("deleteWaitlistRow error:", error.message);
 }
 
 export async function seedIfEmpty(seedProductsList, seedOrdersList) {
