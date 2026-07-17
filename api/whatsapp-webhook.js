@@ -1,16 +1,7 @@
 // ============================================================
 //  Vercel Serverless Function — /api/whatsapp-webhook
-//  Receives incoming WhatsApp messages from Meta, runs them through the
-//  Groq AI (same brain as the web store's CustomerAssistantWidget), and
-//  dispatches actions (place_order / join_waitlist) into the SAME
-//  Supabase tables the web app uses — so a "Waitlist" entry from
-//  WhatsApp shows up in the exact same admin Waitlist view as one from
-//  the website.
-//
-//  Env vars needed (Vercel → Settings → Environment Variables):
-//    WHATSAPP_TOKEN, WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_VERIFY_TOKEN,
-//    ADMIN_WHATSAPP_NUMBER, GROQ_API_KEY,
-//    VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY (already set)
+//  Receives incoming WhatsApp messages from Meta
+//  FIXED: Now triggers waitlist notifications on restock via admin
 // ============================================================
 import { supabase } from "./_lib/supabaseServer.js";
 import { sendWhatsAppText } from "./_lib/waClient.js";
@@ -22,10 +13,6 @@ function genId(prefix) {
   return prefix + "-" + Math.random().toString(36).slice(2, 7).toUpperCase();
 }
 
-// Pakistani numbers show up in different formats depending on where they
-// were typed (local "0301-2345678" on the website vs WhatsApp's
-// "923012345678" wa_id) — comparing the last 10 digits matches them
-// regardless of format.
 function last10(phone) {
   const digits = (phone || "").replace(/\D/g, "");
   return digits.slice(-10);
@@ -35,9 +22,141 @@ function availableStock(p) {
   return Math.max(0, (p.stock || 0) - (p.reserved_stock || 0));
 }
 
+// ============================================================
+//  WAITLIST HELPERS (copied from src/lib/waitlist.ts but 
+//  adapted for serverless Node environment)
+// ============================================================
+
+const RESERVE_HOURS = 48;
+
+async function fetchWaitlist(productId) {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("waitlist")
+    .select("*")
+    .eq("product_id", productId)
+    .order("joined_at", { ascending: true });
+  if (error) {
+    console.error("fetchWaitlist error:", error.message);
+    return [];
+  }
+  return data;
+}
+
+async function fetchAllWaitlist() {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("waitlist")
+    .select("*")
+    .order("joined_at", { ascending: true });
+  if (error) {
+    console.error("fetchAllWaitlist error:", error.message);
+    return [];
+  }
+  return data;
+}
+
+async function fetchExpiredReservations() {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("waitlist")
+    .select("*")
+    .eq("status", "notified")
+    .lt("reserve_expires_at", new Date().toISOString());
+  if (error) {
+    console.error("fetchExpiredReservations error:", error.message);
+    return [];
+  }
+  return data;
+}
+
+async function updateWaitlistRow(id, fields) {
+  if (!supabase) return;
+  const { error } = await supabase
+    .from("waitlist")
+    .update(fields)
+    .eq("id", id);
+  if (error) console.error("updateWaitlistRow error:", error.message);
+}
+
+async function updateProductRow(id, fields) {
+  if (!supabase) return;
+  const { error } = await supabase
+    .from("products")
+    .update(fields)
+    .eq("id", id);
+  if (error) console.error("updateProductRow error:", error.message);
+}
+
+// ---- Send WhatsApp notification to customer ----
+async function notifyWaitlistAvailable(product, phone, customerName) {
+  const message = `🎉 ${customerName}, khushkhabri! "${product.name}" ab dobara available hai aur aapke liye 48 ghanton tak reserve hai. Order confirm karne ke liye jaldi WhatsApp par "order place karo" likhein, warna yeh kisi aur ko offer ho jayega.`;
+  await sendWhatsAppText(phone, message);
+}
+
+// ---- Check and notify waitlist customers (FIFO) ----
+async function checkAndNotifyWaitlist(product, products) {
+  const spare = availableStock(product);
+  if (spare <= 0) return;
+
+  const waiting = (await fetchWaitlist(product.id)).filter(w => w.status === "waiting");
+  if (!waiting.length) return;
+
+  let remaining = spare;
+  let reservedNow = 0;
+
+  for (const entry of waiting) {
+    if (remaining <= 0) break;
+    const offerQty = Math.min(entry.qty, remaining);
+    remaining -= offerQty;
+    reservedNow += offerQty;
+
+    const reserveExpiresAt = new Date(Date.now() + RESERVE_HOURS * 3600 * 1000).toISOString();
+    await updateWaitlistRow(entry.id, {
+      status: "notified",
+      notified_at: new Date().toISOString(),
+      reserve_expires_at: reserveExpiresAt,
+    });
+    await notifyWaitlistAvailable(product, entry.phone, entry.customer_name);
+  }
+
+  if (reservedNow > 0) {
+    const newReserved = (product.reserved_stock || 0) + reservedNow;
+    await updateProductRow(product.id, { reserved_stock: newReserved });
+  }
+}
+
+// ---- Expire stale reservations ----
+async function expireStaleReservations(products) {
+  const stale = await fetchExpiredReservations();
+  if (!stale.length) return;
+
+  const releasedByProduct = {};
+  for (const entry of stale) {
+    await updateWaitlistRow(entry.id, { status: "expired" });
+    releasedByProduct[entry.product_id] = (releasedByProduct[entry.product_id] || 0) + entry.qty;
+  }
+
+  for (const productId of Object.keys(releasedByProduct)) {
+    const product = products.find(p => p.id === productId);
+    if (!product) continue;
+    const newReserved = Math.max(0, (product.reserved_stock || 0) - releasedByProduct[productId]);
+    await updateProductRow(productId, { reserved_stock: newReserved });
+    await checkAndNotifyWaitlist({ ...product, reserved_stock: newReserved }, products);
+  }
+}
+
+// ============================================================
+//  SESSION HELPERS
+// ============================================================
+
 async function getSession(phone) {
   if (!supabase) return [];
-  const { data, error } = await supabase.from("whatsapp_sessions").select("*").eq("phone", phone).maybeSingle();
+  const { data, error } = await supabase
+    .from("whatsapp_sessions")
+    .select("*")
+    .eq("phone", phone)
+    .maybeSingle();
   if (error) {
     console.error("getSession error:", error.message);
     return [];
@@ -54,19 +173,20 @@ async function saveSession(phone, messages) {
   if (error) console.error("saveSession error:", error.message);
 }
 
-// ---- Customer branch: sales + order-taking + waitlist + tracking ----
-async function buildCustomerPrompt(senderName, senderPhone) {
-  const { data: products } = await supabase.from("products").select("*");
-  const { data: orders } = await supabase.from("orders").select("*");
+// ============================================================
+//  PROMPT BUILDERS
+// ============================================================
 
-  const myOrders = (orders || []).filter((o) => last10(o.phone) === last10(senderPhone));
+async function buildCustomerPrompt(senderName, senderPhone, products) {
+  const { data: orders } = await supabase.from("orders").select("*");
+  const myOrders = (orders || []).filter(o => last10(o.phone) === last10(senderPhone));
 
   const shopContext = {
-    catalog: (products || []).map((p) => ({
+    catalog: (products || []).map(p => ({
       id: p.id, name: p.name, category: p.category, price: p.price,
       inStock: availableStock(p) > 0, specs: p.specs,
     })),
-    customerOrders: myOrders.map((o) => ({ id: o.id, status: o.status, total: o.total, items: o.items, date: o.date })),
+    customerOrders: myOrders.map(o => ({ id: o.id, status: o.status, total: o.total, items: o.items, date: o.date })),
     customerName: senderName || "",
     deliveryInfo: "Standard delivery takes 1-2 days within the city.",
     paymentInfo: "Cash on Delivery is accepted; bank transfer support is coming soon.",
@@ -99,20 +219,18 @@ Only emit an action once you truly have everything needed for it — otherwise "
 Shop data:
 ${JSON.stringify(shopContext)}`;
 
-  return { systemPrompt, products: products || [] };
+  return { systemPrompt };
 }
 
-// ---- Admin branch: internal inventory assistant (mirrors AssistantView.tsx) ----
-async function buildAdminPrompt() {
-  const { data: products } = await supabase.from("products").select("*");
+async function buildAdminPrompt(products) {
   const { data: orders } = await supabase.from("orders").select("*");
 
   const storeContext = {
     totalOrders: (orders || []).length,
-    totalSales: (orders || []).filter((o) => o.status !== "cancelled").reduce((s, o) => s + o.total, 0),
-    pendingOrders: (orders || []).filter((o) => o.status === "pending").map((o) => ({ id: o.id, customer: o.customer, total: o.total })),
-    lowStockProducts: (products || []).filter((p) => p.stock <= p.threshold).map((p) => ({ id: p.id, name: p.name, stock: p.stock, threshold: p.threshold })),
-    allProducts: (products || []).map((p) => ({ id: p.id, name: p.name, category: p.category, price: p.price, cost: p.cost, stock: p.stock, threshold: p.threshold })),
+    totalSales: (orders || []).filter(o => o.status !== "cancelled").reduce((s, o) => s + o.total, 0),
+    pendingOrders: (orders || []).filter(o => o.status === "pending").map(o => ({ id: o.id, customer: o.customer, total: o.total })),
+    lowStockProducts: (products || []).filter(p => p.stock <= p.threshold).map(p => ({ id: p.id, name: p.name, stock: p.stock, threshold: p.threshold })),
+    allProducts: (products || []).map(p => ({ id: p.id, name: p.name, category: p.category, price: p.price, cost: p.cost, stock: p.stock, threshold: p.threshold })),
   };
 
   const systemPrompt = `You are the internal AI assistant for AB Store's owner, replying over WhatsApp. This is NOT a customer — never take customer orders or upsell, this is the store owner managing inventory.
@@ -135,14 +253,18 @@ Category must be one of: ${JSON.stringify(CATEGORIES)}. Status must be one of: p
 Store data:
 ${JSON.stringify(storeContext)}`;
 
-  return { systemPrompt, products: products || [] };
+  return { systemPrompt };
 }
+
+// ============================================================
+//  ACTION DISPATCHERS
+// ============================================================
 
 async function dispatchCustomerAction(action, products, senderName, senderPhone) {
   if (action.type === "place_order" && Array.isArray(action.items) && action.items.length) {
     const lines = action.items
-      .map((it) => {
-        const product = products.find((p) => p.id === it.productId);
+      .map(it => {
+        const product = products.find(p => p.id === it.productId);
         return product ? { productId: product.id, name: product.name, qty: Number(it.qty) || 1, price: product.price } : null;
       })
       .filter(Boolean);
@@ -155,7 +277,7 @@ async function dispatchCustomerAction(action, products, senderName, senderPhone)
       phone: senderPhone,
       address: action.address || "",
       channel: "WhatsApp",
-      items: lines.map((l) => ({ productId: l.productId, name: l.name, qty: l.qty })),
+      items: lines.map(l => ({ productId: l.productId, name: l.name, qty: l.qty })),
       total,
       status: "pending",
       date: new Date().toLocaleString(),
@@ -163,7 +285,7 @@ async function dispatchCustomerAction(action, products, senderName, senderPhone)
     await supabase.from("orders").insert(order);
 
     for (const l of lines) {
-      const product = products.find((p) => p.id === l.productId);
+      const product = products.find(p => p.id === l.productId);
       if (product) {
         await supabase.from("products").update({ stock: Math.max(0, product.stock - l.qty) }).eq("id", product.id);
       }
@@ -180,7 +302,11 @@ async function dispatchCustomerAction(action, products, senderName, senderPhone)
   }
 }
 
-async function dispatchAdminAction(action) {
+// ============================================================
+//  ADMIN ACTION DISPATCHER - FIXED: triggers waitlist on restock
+// ============================================================
+
+async function dispatchAdminAction(action, allProducts) {
   if (action.type === "add_product" && action.name) {
     await supabase.from("products").insert({
       id: genId("P"),
@@ -193,17 +319,44 @@ async function dispatchAdminAction(action) {
       threshold: Number(action.threshold) || 10,
       color: "bg-indigo-100 text-indigo-700",
     });
-  } else if (action.type === "edit_product" && action.productId && action.fields) {
+    return;
+  }
+
+  if (action.type === "edit_product" && action.productId && action.fields) {
+    // 🔥 FIX: Check if stock is being increased
+    const product = allProducts.find(p => p.id === action.productId);
+    const oldStock = product?.stock || 0;
+    const newStock = action.fields.stock !== undefined ? Number(action.fields.stock) : oldStock;
+    const stockIncreased = newStock > oldStock;
+
+    // Update product
     await supabase.from("products").update(action.fields).eq("id", action.productId);
-  } else if (action.type === "delete_product" && action.productId) {
+
+    // 🔥 FIX: If stock increased, trigger waitlist notifications
+    if (stockIncreased && product) {
+      const updatedProduct = { ...product, ...action.fields, stock: newStock };
+      await checkAndNotifyWaitlist(updatedProduct, allProducts);
+    }
+    return;
+  }
+
+  if (action.type === "delete_product" && action.productId) {
     await supabase.from("products").delete().eq("id", action.productId);
-  } else if (action.type === "update_order_status" && action.orderId && action.status) {
+    return;
+  }
+
+  if (action.type === "update_order_status" && action.orderId && action.status) {
     await supabase.from("orders").update({ status: action.status }).eq("id", action.orderId);
+    return;
   }
 }
 
+// ============================================================
+//  MAIN WEBHOOK HANDLER
+// ============================================================
+
 export default async function handler(req, res) {
-  // ---- Meta webhook verification handshake ----
+  // ---- Meta webhook verification ----
   if (req.method === "GET") {
     const mode = req.query["hub.mode"];
     const token = req.query["hub.verify_token"];
@@ -212,15 +365,7 @@ export default async function handler(req, res) {
     if (mode === "subscribe" && token === process.env.WHATSAPP_VERIFY_TOKEN) {
       return res.status(200).send(challenge);
     }
-    // TEMP DEBUG — safe to leave in briefly, does not log the actual secret values.
-    const envVal = process.env.WHATSAPP_VERIFY_TOKEN;
-    console.error("verify_token mismatch debug:", {
-      envIsSet: !!envVal,
-      envLength: envVal ? envVal.length : 0,
-      receivedLength: (token || "").length,
-      envFirst2: envVal ? envVal.slice(0, 2) : null,
-      receivedFirst2: (token || "").slice(0, 2),
-    });
+    console.error("verify_token mismatch");
     return res.status(403).send("Forbidden");
   }
 
@@ -228,34 +373,42 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  // Always acknowledge Meta with 200, even on internal errors, so it
-  // doesn't keep retrying the same webhook delivery.
+  // Always acknowledge Meta with 200
   try {
     const value = req.body?.entry?.[0]?.changes?.[0]?.value;
     const message = value?.messages?.[0];
 
-    // No "messages" field = a delivery/read-receipt "statuses" payload, not
-    // an actual incoming message. No-op.
     if (!message || message.type !== "text") {
       return res.status(200).json({ ok: true, skipped: true });
     }
 
-    const senderPhone = message.from; // digits only, country code, e.g. "923001234567"
+    const senderPhone = message.from;
     const senderName = value?.contacts?.[0]?.profile?.name || "";
     const userText = message.text?.body?.trim();
+    
     if (!userText || !supabase) {
+      // 🔥 FIX: Send error reply if Supabase not available
+      if (!supabase) {
+        await sendWhatsAppText(senderPhone, "⚠️ System temporarily unavailable. Please try again in a moment.");
+      }
       return res.status(200).json({ ok: true, skipped: true });
     }
 
     const isAdmin = last10(senderPhone) === last10(process.env.ADMIN_WHATSAPP_NUMBER || "");
 
+    // Fetch products once for all operations
+    const { data: allProducts } = await supabase.from("products").select("*");
+    const products = allProducts || [];
+
     const history = await getSession(senderPhone);
 
-    let systemPrompt, products;
+    let systemPrompt;
     if (isAdmin) {
-      ({ systemPrompt, products } = await buildAdminPrompt());
+      const result = await buildAdminPrompt(products);
+      systemPrompt = result.systemPrompt;
     } else {
-      ({ systemPrompt, products } = await buildCustomerPrompt(senderName, senderPhone));
+      const result = await buildCustomerPrompt(senderName, senderPhone, products);
+      systemPrompt = result.systemPrompt;
     }
 
     const apiMessages = [
@@ -263,12 +416,27 @@ export default async function handler(req, res) {
       { role: "user", content: userText },
     ];
 
-    const raw = await callGroq(systemPrompt, apiMessages);
+    let raw;
+    try {
+      raw = await callGroq(systemPrompt, apiMessages);
+    } catch (groqError) {
+      // 🔥 FIX: Send error reply to customer if Groq fails
+      console.error("Groq error:", groqError.message);
+      const errorReply = "⚠️ Main assistant temporarily unavailable. Please try again in a moment or contact support.";
+      await sendWhatsAppText(senderPhone, errorReply);
+      await saveSession(senderPhone, [
+        ...history,
+        { role: "user", content: userText },
+        { role: "assistant", content: errorReply },
+      ]);
+      return res.status(200).json({ ok: false, error: groqError.message });
+    }
+
     const { reply, action } = parseReply(raw);
 
     if (action) {
       if (isAdmin) {
-        await dispatchAdminAction(action);
+        await dispatchAdminAction(action, products);
       } else {
         await dispatchCustomerAction(action, products, senderName, senderPhone);
       }
@@ -280,11 +448,24 @@ export default async function handler(req, res) {
       { role: "assistant", content: reply },
     ]);
 
+    // 🔥 FIX: Always send reply to customer
     await sendWhatsAppText(senderPhone, reply);
 
     return res.status(200).json({ ok: true });
+    
   } catch (err) {
     console.error("whatsapp-webhook error:", err.message);
+    
+    // 🔥 FIX: Try to send error message to customer
+    try {
+      const senderPhone = req.body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.from;
+      if (senderPhone) {
+        await sendWhatsAppText(senderPhone, "⚠️ Something went wrong. Please try again in a moment.");
+      }
+    } catch (sendError) {
+      console.error("Failed to send error message:", sendError.message);
+    }
+    
     return res.status(200).json({ ok: false, error: err.message });
   }
 }
