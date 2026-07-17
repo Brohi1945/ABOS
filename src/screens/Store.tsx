@@ -7,6 +7,7 @@ import { CATEGORIES } from "../lib/seedData";
 import { genId, money } from "../lib/utils";
 import { availableStock } from "../lib/waitlist";
 import { callClaude, parseAssistantReply } from "../lib/aiHelpers";
+import { toastError } from "../lib/toast";
 import { Card, StatusBadge, Button, Drawer, Modal, Field, inputCls, EmptyState } from "../components/ui";
 
 interface CustomerAssistantWidgetProps {
@@ -254,7 +255,13 @@ export default function StoreScreen({ products, onBack, onLogin, placedOrders, o
   const handleJoinWaitlistSubmit = async () => {
     if (!waitlistModal || !waitlistForm.name || !waitlistForm.phone) return;
     const result = await onJoinWaitlist(waitlistModal, waitlistForm.name, waitlistForm.phone, 1);
-    setWaitlistJoined({ product: waitlistModal, position: result?.position || null });
+    if (!result) {
+      // Insert actually failed (e.g. Supabase table/columns missing) — don't
+      // lie to the customer with a fake "you're on the list" confirmation.
+      toastError("Waitlist mein add nahi ho saka — dobara koshish karein.");
+      return;
+    }
+    setWaitlistJoined({ product: waitlistModal, position: result.position });
     setWaitlistModal(null);
     setWaitlistForm({ name: "", phone: "" });
   };
