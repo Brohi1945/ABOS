@@ -212,6 +212,15 @@ export default async function handler(req, res) {
     if (mode === "subscribe" && token === process.env.WHATSAPP_VERIFY_TOKEN) {
       return res.status(200).send(challenge);
     }
+    // TEMP DEBUG — safe to leave in briefly, does not log the actual secret values.
+    const envVal = process.env.WHATSAPP_VERIFY_TOKEN;
+    console.error("verify_token mismatch debug:", {
+      envIsSet: !!envVal,
+      envLength: envVal ? envVal.length : 0,
+      receivedLength: (token || "").length,
+      envFirst2: envVal ? envVal.slice(0, 2) : null,
+      receivedFirst2: (token || "").slice(0, 2),
+    });
     return res.status(403).send("Forbidden");
   }
 
