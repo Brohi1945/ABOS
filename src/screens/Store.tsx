@@ -5,6 +5,7 @@ import {
 import { displayFont, bodyFont } from "../lib/theme";
 import { CATEGORIES } from "../lib/seedData";
 import { genId, money } from "../lib/utils";
+import { availableStock } from "../lib/waitlist";
 import { callClaude, parseAssistantReply } from "../lib/aiHelpers";
 import { Card, StatusBadge, Button, Drawer, Modal, Field, inputCls, EmptyState } from "../components/ui";
 
@@ -12,9 +13,10 @@ interface CustomerAssistantWidgetProps {
   products: any[];
   placedOrders: any[];
   onPlaceOrder: (order: any) => void;
+  onJoinWaitlist: (product: any, customerName: string, phone: string, qty?: number) => Promise<{ position: number } | null>;
 }
 
-function CustomerAssistantWidget({ products, placedOrders, onPlaceOrder }: CustomerAssistantWidgetProps) {
+function CustomerAssistantWidget({ products, placedOrders, onPlaceOrder, onJoinWaitlist }: CustomerAssistantWidgetProps) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<{ role: "user" | "bot"; text: string }[]>([
     { role: "bot", text: "Hi! Ask me about products, specs, deals, or your order status — I can even take your order right here." },
@@ -38,18 +40,19 @@ function CustomerAssistantWidget({ products, placedOrders, onPlaceOrder }: Custo
     setLoading(true);
 
     const shopContext = {
-      catalog: products.map((p) => ({ id: p.id, name: p.name, category: p.category, price: p.price, inStock: p.stock > 0, specs: p.specs })),
+      catalog: products.map((p) => ({ id: p.id, name: p.name, category: p.category, price: p.price, inStock: availableStock(p) > 0, specs: p.specs })),
       customerOrders: placedOrders.map((o) => ({ id: o.id, status: o.status, total: o.total, items: o.items, date: o.date })),
       deliveryInfo: "Standard delivery takes 1-2 days within the city.",
       paymentInfo: "Cash on Delivery is accepted; bank transfer support is coming soon.",
       returnsInfo: "Report any order issue within 24 hours of delivery for support.",
     };
 
-    const systemPrompt = `You are the friendly SALES + support assistant for AB Store, a small online grocery/essentials shop. You can do four things:
+    const systemPrompt = `You are the friendly SALES + support assistant for AB Store, a small online grocery/essentials shop. You can do five things:
 1. Answer questions about products, specs, prices, delivery, and payment using ONLY the catalog data below.
 2. Proactively push sales: when a customer shows interest in a product, briefly mention one relevant add-on from the catalog (e.g. suggest Cooking Oil alongside Rice) — but never be pushy, one suggestion max per reply.
 3. Track existing orders using the customerOrders data.
-4. Take a NEW order end-to-end: when the customer wants to order something, figure out which product(s) and quantities from the conversation, then ask for their name, phone number, and delivery address ONE missing piece at a time if not yet given. Once you have product(s)+quantities AND name AND phone AND address, output the order action (see format below) so it gets placed for real — do not just say you placed it, you must include the action object.
+4. Take a NEW order end-to-end: when the customer wants to order something that is inStock, figure out which product(s) and quantities from the conversation, then ask for their name, phone number, and delivery address ONE missing piece at a time if not yet given. Once you have product(s)+quantities AND name AND phone AND address, output the order action (see format below) so it gets placed for real — do not just say you placed it, you must include the action object.
+5. If a customer wants a product that is OUT OF STOCK (inStock: false), do NOT take a normal order for it. Instead offer to add them to a waitlist — explain they'll be messaged the moment it's back and it'll be reserved for them for 48 hours. Ask for name + phone (ONE missing piece at a time), then emit the join_waitlist action once you have both. Never invent a delivery date for an out-of-stock item.
 
 Prices are in Pakistani Rupees (Rs). Never mention cost price, margins, or internal admin details.
 
@@ -61,7 +64,10 @@ CRITICAL OUTPUT FORMAT — you must ALWAYS respond with ONLY a raw JSON object (
 When you have everything needed to place an order (product ids + quantities + customer name + phone + address), instead set "action" to:
 {"reply": "confirmation message in Roman Urdu mentioning what was ordered", "action": {"type": "place_order", "items": [{"productId": "P001", "qty": 2}], "customer": {"name": "...", "phone": "...", "address": "..."}}}
 
-Only ever emit the place_order action ONCE you truly have all required fields — otherwise keep "action": null and ask for the missing piece in "reply".
+When you have name + phone for an out-of-stock product the customer wants, instead set "action" to:
+{"reply": "confirmation message in Roman Urdu explaining they're on the waitlist and will be messaged within 48 hours of it being reserved for them", "action": {"type": "join_waitlist", "productId": "P001", "qty": 1, "customer": {"name": "...", "phone": "..."}}}
+
+Only ever emit the place_order or join_waitlist action ONCE you truly have all required fields for that action — otherwise keep "action": null and ask for the missing piece in "reply".
 
 Shop data:
 ${JSON.stringify(shopContext)}`;
@@ -93,6 +99,11 @@ ${JSON.stringify(shopContext)}`;
           };
           onPlaceOrder(order);
           setLastOrderId(order.id);
+        }
+      } else if (action && action.type === "join_waitlist" && action.productId && action.customer?.name && action.customer?.phone) {
+        const product = products.find((p) => p.id === action.productId);
+        if (product) {
+          await onJoinWaitlist(product, action.customer.name, action.customer.phone, Number(action.qty) || 1);
         }
       }
     } catch (err) {
@@ -178,9 +189,10 @@ interface StoreScreenProps {
   onLogin?: () => void;
   placedOrders: any[];
   onPlaceOrder: (order: any) => void;
+  onJoinWaitlist: (product: any, customerName: string, phone: string, qty?: number) => Promise<{ position: number } | null>;
 }
 
-export default function StoreScreen({ products, onBack, onLogin, placedOrders, onPlaceOrder }: StoreScreenProps) {
+export default function StoreScreen({ products, onBack, onLogin, placedOrders, onPlaceOrder, onJoinWaitlist }: StoreScreenProps) {
   const [cart, setCart] = useState<{ productId: string; qty: number }[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [view, setView] = useState("browse");
@@ -188,6 +200,9 @@ export default function StoreScreen({ products, onBack, onLogin, placedOrders, o
   const [placed, setPlaced] = useState<any>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [form, setForm] = useState({ name: "", phone: "", address: "" });
+  const [waitlistModal, setWaitlistModal] = useState<any>(null);
+  const [waitlistForm, setWaitlistForm] = useState({ name: "", phone: "" });
+  const [waitlistJoined, setWaitlistJoined] = useState<any>(null);
 
   const cats = ["All", ...CATEGORIES];
   const filtered = category === "All" ? products : products.filter((p) => p.category === category);
@@ -196,7 +211,7 @@ export default function StoreScreen({ products, onBack, onLogin, placedOrders, o
     setCart((c) => {
       const existing = c.find((it) => it.productId === p.id);
       const currentQty = existing?.qty || 0;
-      if (currentQty >= p.stock) return c; // already at max available stock
+      if (currentQty >= availableStock(p)) return c; // already at max available stock
       if (existing) return c.map((it) => (it.productId === p.id ? { ...it, qty: it.qty + 1 } : it));
       return [...c, { productId: p.id, qty: 1 }];
     });
@@ -207,7 +222,7 @@ export default function StoreScreen({ products, onBack, onLogin, placedOrders, o
         .map((it) => {
           if (it.productId !== id) return it;
           const product = products.find((p) => p.id === id);
-          const maxQty = product ? product.stock : Infinity;
+          const maxQty = product ? availableStock(product) : Infinity;
           return { ...it, qty: Math.min(maxQty, Math.max(1, it.qty + delta)) };
         })
         .filter((it) => it.qty > 0)
@@ -234,6 +249,14 @@ export default function StoreScreen({ products, onBack, onLogin, placedOrders, o
     setCart([]);
     setCheckoutOpen(false);
     setCartOpen(false);
+  };
+
+  const handleJoinWaitlistSubmit = async () => {
+    if (!waitlistModal || !waitlistForm.name || !waitlistForm.phone) return;
+    const result = await onJoinWaitlist(waitlistModal, waitlistForm.name, waitlistForm.phone, 1);
+    setWaitlistJoined({ product: waitlistModal, position: result?.position || null });
+    setWaitlistModal(null);
+    setWaitlistForm({ name: "", phone: "" });
   };
 
   return (
@@ -282,9 +305,14 @@ export default function StoreScreen({ products, onBack, onLogin, placedOrders, o
                   <div className="text-[11px] text-[#8B8F9C] mb-2">{p.category}</div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-bold text-indigo-400">{money(p.price)}</span>
-                    {p.stock <= 0 ? (
-                      <span className="text-[10px] font-semibold text-red-400">Sold out</span>
-                    ) : (cart.find((it) => it.productId === p.id)?.qty || 0) >= p.stock ? (
+                    {availableStock(p) <= 0 ? (
+                      <button
+                        onClick={() => setWaitlistModal(p)}
+                        className="text-[10px] font-semibold text-[#C9A44C] hover:underline"
+                      >
+                        Notify me
+                      </button>
+                    ) : (cart.find((it) => it.productId === p.id)?.qty || 0) >= availableStock(p) ? (
                       <span className="text-[10px] font-semibold text-[#8B8F9C]">Max in cart</span>
                     ) : (
                       <button onClick={() => addToCart(p)} className="w-7 h-7 rounded-lg bg-[#C9A44C] text-black flex items-center justify-center hover:bg-[#8A712F]">
@@ -340,7 +368,7 @@ export default function StoreScreen({ products, onBack, onLogin, placedOrders, o
                     <span className="text-xs font-semibold w-5 text-center text-[#E8E9ED]">{l.qty}</span>
                     <button
                       onClick={() => updateQty(l.productId, 1)}
-                      disabled={l.qty >= l.product.stock}
+                      disabled={l.qty >= availableStock(l.product)}
                       className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center text-[#8B8F9C] disabled:opacity-30"
                     ><Plus size={11} /></button>
                   </div>
@@ -388,7 +416,43 @@ export default function StoreScreen({ products, onBack, onLogin, placedOrders, o
         )}
       </Modal>
 
-      <CustomerAssistantWidget products={products} placedOrders={placedOrders} onPlaceOrder={onPlaceOrder} />
+      <Modal open={!!waitlistModal} onClose={() => setWaitlistModal(null)} title="Notify me when available" width={380}>
+        {waitlistModal && (
+          <div>
+            <p className="text-xs text-[#8B8F9C] mb-4">
+              <span className="font-semibold text-[#E8E9ED]">{waitlistModal.name}</span> is currently out of stock. Share your details and we'll message you the moment it's back — it'll be reserved for you for 48 hours.
+            </p>
+            <Field label="Full name">
+              <input value={waitlistForm.name} onChange={(e) => setWaitlistForm((f) => ({ ...f, name: e.target.value }))} className={inputCls} placeholder="Your name" />
+            </Field>
+            <Field label="Phone number">
+              <input value={waitlistForm.phone} onChange={(e) => setWaitlistForm((f) => ({ ...f, phone: e.target.value }))} className={inputCls} placeholder="03XX-XXXXXXX" />
+            </Field>
+            <Button className="w-full" size="lg" onClick={handleJoinWaitlistSubmit} disabled={!waitlistForm.name || !waitlistForm.phone}>
+              Join waitlist
+            </Button>
+          </div>
+        )}
+      </Modal>
+
+      <Modal open={!!waitlistJoined} onClose={() => setWaitlistJoined(null)} title="You're on the list" width={380}>
+        {waitlistJoined && (
+          <div className="text-center py-2">
+            <div className="w-14 h-14 rounded-full bg-indigo-500/10 text-indigo-400 flex items-center justify-center mx-auto mb-3">
+              <PackageCheck size={26} />
+            </div>
+            <div className="font-bold text-[#E8E9ED] mb-1" style={{ fontFamily: displayFont }}>
+              Waitlisted for {waitlistJoined.product.name}
+            </div>
+            <p className="text-xs text-[#8B8F9C] mb-1">
+              {waitlistJoined.position ? `You're #${waitlistJoined.position} in line. ` : ""}
+              We'll message you the moment it's back in stock — it'll be reserved for you for 48 hours.
+            </p>
+          </div>
+        )}
+      </Modal>
+
+      <CustomerAssistantWidget products={products} placedOrders={placedOrders} onPlaceOrder={onPlaceOrder} onJoinWaitlist={onJoinWaitlist} />
     </div>
   );
 }
