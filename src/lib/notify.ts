@@ -22,12 +22,12 @@ interface Product {
   threshold: number;
 }
 
-async function sendNotification(message: string): Promise<void> {
+async function sendNotification(message: string, to?: string): Promise<void> {
   try {
     await fetch("/api/notify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify(to ? { message, to } : { message }),
     });
   } catch (err: any) {
     console.error("sendNotification failed:", err.message);
@@ -44,5 +44,16 @@ export function notifyNewOrder(order: Order): void {
 export function notifyLowStock(product: Product, newStock: number): void {
   sendNotification(
     `Low stock alert: ${product.name} sirf ${newStock} units bache hain (threshold: ${product.threshold}).`
+  );
+}
+
+// Waitlist customer ko unke phone number pe bheja jata hai jab unka
+// reserve-kiya hua product available ho jaye. Isi /api/notify route se
+// jaata hai jo abhi Twilio SMS use kar raha hai — jab WhatsApp API lagegi,
+// sirf api/notify.js ke andar ka provider badalna hoga, yeh function nahi.
+export function notifyWaitlistAvailable(product: Product, phone: string, customerName: string): void {
+  sendNotification(
+    `${customerName}, khushkhabri! "${product.name}" ab dobara available hai aur aapke liye 48 ghanton tak reserve hai. Order confirm karne ke liye jaldi order place karein, warna yeh kisi aur ko offer ho jayega.`,
+    phone
   );
 }
