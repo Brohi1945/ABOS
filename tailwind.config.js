@@ -1,19 +1,26 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: "class",
   content: ["./index.html", "./src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        bg: {
-          base: "#0B0D12",
-          surface: "#14171F",
-        },
-        text: {
-          primary: "#E8E9ED",
+        app: "var(--color-bg)",
+        surface: "var(--color-surface)",
+        fg: "var(--color-text)",
+        muted: "var(--color-text-muted)",
+        brand: {
+          DEFAULT: "var(--color-primary)",
         },
         accent: {
-          gold: "#C9A44C",
+          DEFAULT: "var(--color-accent)",
         },
+        success: "var(--color-success)",
+        danger: "var(--color-danger)",
+        warning: "var(--color-warning)",
+      },
+      borderColor: {
+        DEFAULT: "var(--color-border)",
       },
     },
   },
