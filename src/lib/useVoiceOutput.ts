@@ -161,8 +161,20 @@ export function useVoiceOutput({
       if (myRequestId !== requestIdRef.current) return;
 
       const utterance = new SpeechSynthesisUtterance(text);
-      if (voiceRef.current) utterance.voice = voiceRef.current;
-      utterance.lang = langRef.current;
+      if (voiceRef.current) {
+        utterance.voice = voiceRef.current;
+        // IMPORTANT: use the voice's OWN lang, not the requested `lang`
+        // option. If the requested language (e.g. "en-IN") isn't installed
+        // on this device, pickVoice() already fell back to whatever IS
+        // installed (e.g. "en-US") — but forcing utterance.lang to the
+        // unavailable "en-IN" while utterance.voice is actually an en-US
+        // voice creates a mismatch that some Android Chrome builds handle
+        // inconsistently (works sometimes, silently fails other times).
+        // Keeping them in sync removes that as a source of flakiness.
+        utterance.lang = voiceRef.current.lang;
+      } else {
+        utterance.lang = langRef.current;
+      }
       utterance.rate = rateRef.current;
       utterance.pitch = pitchRef.current;
 
