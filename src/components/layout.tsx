@@ -2,7 +2,7 @@ import React from "react";
 import {
   Search, Bell, ChevronDown, LogOut, Menu, Sparkles, ShoppingBag, ArrowLeft,
 } from "lucide-react";
-import { displayFont } from "../lib/theme";
+import { displayFont } from "../theme";
 import { NAV_ITEMS } from "../config/app.config";
 
 interface SidebarProps {
@@ -20,12 +20,12 @@ export function Sidebar({ active, onSelect, open, onClose, lowStockCount, onLogo
     <>
       {open && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={onClose} />}
       <aside
-        className={`fixed top-0 left-0 bottom-0 w-64 bg-[#0B0D12] border-r border-[rgba(255,255,255,0.06)] z-50 flex flex-col transition-transform lg:translate-x-0 ${
+        className={`fixed top-0 left-0 bottom-0 w-64 bg-app border-r z-50 flex flex-col transition-transform lg:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex items-center gap-2 px-5 py-5 font-bold text-[#E8E9ED]" style={{ fontFamily: displayFont }}>
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#C9A44C] to-[#8A712F] flex items-center justify-center text-black shrink-0">
+        <div className="flex items-center gap-2 px-5 py-5 font-bold text-fg" style={{ fontFamily: displayFont }}>
+          <div className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center text-white shrink-0">
             <Sparkles size={15} />
           </div>
           AB OS
@@ -42,8 +42,8 @@ export function Sidebar({ active, onSelect, open, onClose, lowStockCount, onLogo
                 onClick={() => { onSelect(item.key); onClose(); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                   isActive
-                    ? "bg-[#14171F] text-[#E8E9ED]"
-                    : "text-[#8B8F9C] hover:bg-[#14171F] hover:text-[#E8E9ED]"
+                    ? "bg-surface text-fg"
+                    : "text-muted hover:bg-surface hover:text-fg"
                 }`}
               >
                 <item.icon size={17} className="shrink-0" />
@@ -59,17 +59,17 @@ export function Sidebar({ active, onSelect, open, onClose, lowStockCount, onLogo
           })}
         </nav>
 
-        <div className="p-3 border-t border-[rgba(255,255,255,0.06)] space-y-1">
+        <div className="p-3 border-t space-y-1">
           <button
             onClick={onGoStore}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[#8B8F9C] hover:bg-[#14171F] hover:text-indigo-400"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted hover:bg-surface hover:text-brand"
           >
             <ShoppingBag size={17} /> View store
           </button>
 
           <button
             onClick={onLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[#8B8F9C] hover:bg-[#14171F] hover:text-red-400"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted hover:bg-surface hover:text-danger"
           >
             <LogOut size={17} /> Log out
           </button>
@@ -91,13 +91,13 @@ interface TopbarProps {
 
 export function Topbar({ title, onMenuClick, notifCount, onNotifClick, notifOpen, notifications, onBack }: TopbarProps) {
   return (
-    <div className="sticky top-0 z-30 bg-[#0B0D12]/90 backdrop-blur-md border-b border-[rgba(255,255,255,0.06)]">
+    <div className="sticky top-0 z-30 bg-app/90 backdrop-blur-md border-b">
       <div className="flex items-center gap-3 px-4 sm:px-6 py-3.5">
 
         {onBack && (
           <button
             onClick={onBack}
-            className="w-9 h-9 rounded-lg bg-[#14171F] border border-[rgba(255,255,255,0.06)] flex items-center justify-center text-[#C7C9D1] shrink-0"
+            className="w-9 h-9 rounded-lg bg-surface border flex items-center justify-center text-fg shrink-0"
             aria-label="Back to Dashboard"
           >
             <ArrowLeft size={17} />
@@ -106,20 +106,20 @@ export function Topbar({ title, onMenuClick, notifCount, onNotifClick, notifOpen
 
         <button
           onClick={onMenuClick}
-          className="lg:hidden w-9 h-9 rounded-lg bg-[#14171F] border border-[rgba(255,255,255,0.06)] flex items-center justify-center text-[#C7C9D1]"
+          className="lg:hidden w-9 h-9 rounded-lg bg-surface border flex items-center justify-center text-fg"
         >
           <Menu size={17} />
         </button>
 
-        <h1 className="font-bold text-[#E8E9ED] text-lg hidden sm:block" style={{ fontFamily: displayFont }}>
+        <h1 className="font-bold text-fg text-lg hidden sm:block" style={{ fontFamily: displayFont }}>
           {title}
         </h1>
 
         <div className="flex-1 max-w-md relative hidden md:block">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8B8F9C]" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
           <input
             placeholder="Search orders, products, customers…"
-            className="w-full pl-9 pr-3 py-2.5 rounded-xl text-sm bg-[#14171F] border border-[rgba(255,255,255,0.06)] text-[#E8E9ED] placeholder-[#8B8F9C] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition"
+            className="w-full pl-9 pr-3 py-2.5 rounded-xl text-sm bg-surface border text-fg placeholder-muted focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand transition"
           />
         </div>
 
@@ -128,32 +128,32 @@ export function Topbar({ title, onMenuClick, notifCount, onNotifClick, notifOpen
         <div className="relative">
           <button
             onClick={onNotifClick}
-            className="relative w-9 h-9 rounded-lg bg-[#14171F] border border-[rgba(255,255,255,0.06)] flex items-center justify-center text-[#C7C9D1]"
+            className="relative w-9 h-9 rounded-lg bg-surface border flex items-center justify-center text-fg"
           >
             <Bell size={16} />
 
             {notifCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-danger text-white text-[9px] font-bold flex items-center justify-center">
                 {notifCount}
               </span>
             )}
           </button>
 
           {notifOpen && (
-            <div className="absolute right-0 mt-2 w-72 bg-[#14171F] rounded-xl border border-[rgba(255,255,255,0.06)] shadow-xl overflow-hidden">
-              <div className="px-4 py-3 text-xs font-bold text-[#C7C9D1] border-b border-[rgba(255,255,255,0.06)]">
+            <div className="absolute right-0 mt-2 w-72 bg-surface rounded-xl border shadow-xl overflow-hidden">
+              <div className="px-4 py-3 text-xs font-bold text-fg border-b">
                 Notifications
               </div>
 
               {notifications.length === 0 ? (
-                <div className="px-4 py-6 text-xs text-[#8B8F9C] text-center">
+                <div className="px-4 py-6 text-xs text-muted text-center">
                   You're all caught up.
                 </div>
               ) : (
                 notifications.map((n, i) => (
-                  <div key={i} className="px-4 py-2.5 text-xs border-b border-[rgba(255,255,255,0.06)] last:border-0">
-                    <div className="font-semibold text-[#E8E9ED]">{n.title}</div>
-                    <div className="text-[#8B8F9C]">{n.note}</div>
+                  <div key={i} className="px-4 py-2.5 text-xs border-b last:border-0">
+                    <div className="font-semibold text-fg">{n.title}</div>
+                    <div className="text-muted">{n.note}</div>
                   </div>
                 ))
               )}
@@ -161,17 +161,17 @@ export function Topbar({ title, onMenuClick, notifCount, onNotifClick, notifOpen
           )}
         </div>
 
-        <div className="flex items-center gap-2 pl-2 border-l border-[rgba(255,255,255,0.06)]">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#C9A44C] to-green-500 flex items-center justify-center text-black text-xs font-bold">
+        <div className="flex items-center gap-2 pl-2 border-l">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand to-accent flex items-center justify-center text-white text-xs font-bold">
             SA
           </div>
 
           <div className="hidden sm:block leading-tight">
-            <div className="text-xs font-semibold text-[#E8E9ED]">Store Admin</div>
-            <div className="text-[10px] text-[#8B8F9C]">Owner</div>
+            <div className="text-xs font-semibold text-fg">Store Admin</div>
+            <div className="text-[10px] text-muted">Owner</div>
           </div>
 
-          <ChevronDown size={14} className="text-[#8B8F9C] hidden sm:block" />
+          <ChevronDown size={14} className="text-muted hidden sm:block" />
         </div>
 
       </div>
