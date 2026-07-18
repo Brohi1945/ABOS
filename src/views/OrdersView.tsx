@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ShoppingCart, Filter, Download, ChevronRight } from "lucide-react";
-import { displayFont } from "../lib/theme";
+import { displayFont } from "../theme";
 import { money } from "../lib/utils";
 import { STATUS_META } from "../lib/seedData";
 import { Card, Badge, StatusBadge, Button, Drawer, EmptyState } from "../components/ui";
@@ -34,15 +34,15 @@ export default function OrdersView({ orders, onUpdateStatus }: OrdersViewProps) 
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="h-8 w-32 bg-[#1B1F2A] rounded-lg animate-pulse" />
+          <div className="h-8 w-32 bg-surface rounded-lg animate-pulse" />
           <div className="flex gap-2">
-            <div className="h-9 w-20 bg-[#1B1F2A] rounded-lg animate-pulse" />
-            <div className="h-9 w-20 bg-[#1B1F2A] rounded-lg animate-pulse" />
+            <div className="h-9 w-20 bg-surface rounded-lg animate-pulse" />
+            <div className="h-9 w-20 bg-surface rounded-lg animate-pulse" />
           </div>
         </div>
         <div className="flex gap-1.5 overflow-x-auto pb-1">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-9 w-16 bg-[#1B1F2A] rounded-xl animate-pulse" />
+            <div key={i} className="h-9 w-16 bg-surface rounded-xl animate-pulse" />
           ))}
         </div>
         <SkeletonTable rows={6} cols={6} />
@@ -53,7 +53,7 @@ export default function OrdersView({ orders, onUpdateStatus }: OrdersViewProps) 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h2 className="text-xl font-bold text-[#E8E9ED]" style={{ fontFamily: displayFont }}>
+        <h2 className="text-xl font-bold text-fg" style={{ fontFamily: displayFont }}>
           Orders
         </h2>
         <div className="flex items-center gap-2">
@@ -73,8 +73,8 @@ export default function OrdersView({ orders, onUpdateStatus }: OrdersViewProps) 
             onClick={() => setFilter(t.key)}
             className={`text-xs font-semibold px-3.5 py-2 rounded-xl whitespace-nowrap transition ${
               filter === t.key
-                ? "bg-[#C9A44C] text-black"
-                : "bg-[#14171F] text-[#8B8F9C] border border-[rgba(255,255,255,0.06)]"
+                ? "bg-brand text-white"
+                : "bg-app text-muted border"
             }`}
           >
             {t.label}
@@ -89,7 +89,7 @@ export default function OrdersView({ orders, onUpdateStatus }: OrdersViewProps) 
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-[11px] text-[#8B8F9C] font-semibold uppercase tracking-wide">
+                <tr className="text-left text-[11px] text-muted font-semibold uppercase tracking-wide">
                   <th className="px-5 py-3">Order</th>
                   <th className="px-5 py-3">Customer</th>
                   <th className="px-5 py-3">Channel</th>
@@ -103,21 +103,21 @@ export default function OrdersView({ orders, onUpdateStatus }: OrdersViewProps) 
                 {filtered.map((o) => (
                   <tr
                     key={o.id}
-                    className="border-t border-[rgba(255,255,255,0.06)] hover:bg-white/5 transition cursor-pointer"
+                    className="border-t border hover:bg-white/5 transition cursor-pointer"
                     onClick={() => setSelected(o)}
                   >
-                    <td className="px-5 py-3.5 font-semibold text-[#E8E9ED]">{o.id}</td>
-                    <td className="px-5 py-3.5 text-[#C7C9D1]">{o.customer}</td>
+                    <td className="px-5 py-3.5 font-semibold text-fg">{o.id}</td>
+                    <td className="px-5 py-3.5 text-muted">{o.customer}</td>
                     <td className="px-5 py-3.5">
                       <Badge tone="slate">{o.channel}</Badge>
                     </td>
-                    <td className="px-5 py-3.5 text-[#E8E9ED] font-medium">{money(o.total)}</td>
+                    <td className="px-5 py-3.5 text-fg font-medium">{money(o.total)}</td>
                     <td className="px-5 py-3.5">
                       <StatusBadge status={o.status} />
                     </td>
-                    <td className="px-5 py-3.5 text-[#8B8F9C] text-xs">{o.date}</td>
+                    <td className="px-5 py-3.5 text-muted text-xs">{o.date}</td>
                     <td className="px-5 py-3.5 text-right">
-                      <ChevronRight size={15} className="text-[#6B7080]" />
+                      <ChevronRight size={15} className="text-muted" />
                     </td>
                   </tr>
                 ))}
@@ -132,29 +132,29 @@ export default function OrdersView({ orders, onUpdateStatus }: OrdersViewProps) 
           <div className="space-y-5">
             <div className="flex items-center justify-between">
               <StatusBadge status={selected.status} />
-              <span className="text-xs text-[#8B8F9C]">{selected.date}</span>
+              <span className="text-xs text-muted">{selected.date}</span>
             </div>
             <div>
-              <div className="text-xs font-semibold text-[#8B8F9C] mb-1">Customer</div>
-              <div className="text-sm font-semibold text-[#E8E9ED]">{selected.customer}</div>
+              <div className="text-xs font-semibold text-muted mb-1">Customer</div>
+              <div className="text-sm font-semibold text-fg">{selected.customer}</div>
             </div>
             <div>
-              <div className="text-xs font-semibold text-[#8B8F9C] mb-2">Items</div>
+              <div className="text-xs font-semibold text-muted mb-2">Items</div>
               <div className="space-y-2">
                 {selected.items.map((it: any, i: number) => (
                   <div key={i} className="flex items-center justify-between text-sm bg-white/5 rounded-lg px-3 py-2">
-                    <span className="text-[#C7C9D1]">{it.name}</span>
-                    <span className="text-[#8B8F9C] font-medium">x{it.qty}</span>
+                    <span className="text-muted">{it.name}</span>
+                    <span className="text-muted font-medium">x{it.qty}</span>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="flex items-center justify-between text-sm font-bold pt-3 border-t border-[rgba(255,255,255,0.06)]">
-              <span className="text-[#E8E9ED]">Total</span>
+            <div className="flex items-center justify-between text-sm font-bold pt-3 border-t border">
+              <span className="text-fg">Total</span>
               <span className="text-indigo-400">{money(selected.total)}</span>
             </div>
             <div>
-              <div className="text-xs font-semibold text-[#8B8F9C] mb-2">Update status</div>
+              <div className="text-xs font-semibold text-muted mb-2">Update status</div>
               <div className="grid grid-cols-2 gap-2">
                 {Object.keys(STATUS_META).map((s) => (
                   <button
@@ -166,7 +166,7 @@ export default function OrdersView({ orders, onUpdateStatus }: OrdersViewProps) 
                     className={`text-xs font-semibold px-3 py-2.5 rounded-xl border transition ${
                       selected.status === s
                         ? STATUS_META[s].cls
-                        : "bg-[#14171F] border-[rgba(255,255,255,0.06)] text-[#8B8F9C] hover:border-indigo-500/40"
+                        : "bg-app border text-muted hover:border-indigo-500/40"
                     }`}
                   >
                     {STATUS_META[s].label}
