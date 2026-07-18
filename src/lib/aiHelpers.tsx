@@ -79,9 +79,9 @@ export function parseAssistantReply(raw: string): { reply: string; action: Assis
 
 export function TypingDots() {
   return (
-    <div className="flex items-center gap-1 px-4 py-3 bg-[#14171F] border border-[rgba(255,255,255,0.06)] rounded-2xl rounded-bl-md w-fit">
-      <Loader2 size={13} className="animate-spin text-[#C9A44C]" />
-      <span className="text-xs text-[#8B8F9C]">Thinking…</span>
+    <div className="flex items-center gap-1 px-4 py-3 bg-app border rounded-2xl rounded-bl-md w-fit">
+      <Loader2 size={13} className="animate-spin text-brand" />
+      <span className="text-xs text-muted">Thinking…</span>
     </div>
   );
 }
