@@ -1,12 +1,14 @@
+@import "./theme/tokens.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 body {
-  background: #0B0D12;
-  color: #E8E9ED;
+  background: var(--color-bg);
+  color: var(--color-text);
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
 * {
-  border-color: rgba(255,255,255,0.06);
+  border-color: var(--color-border);
 }
