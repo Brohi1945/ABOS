@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Send, Loader2 } from "lucide-react";
-import { displayFont } from "../lib/theme";
+import { displayFont } from "../theme";
 import { CATEGORIES } from "../lib/seedData";
 import { callClaude, parseAssistantReply, TypingDots } from "../lib/aiHelpers";
 import { Card, Button, inputCls } from "../components/ui";
@@ -101,13 +101,13 @@ ${JSON.stringify(storeContext)}`;
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-bold text-text-primary" style={{ fontFamily: displayFont }}>AI Assistant</h2>
+      <h2 className="text-xl font-bold text-fg" style={{ fontFamily: displayFont }}>AI Assistant</h2>
       <Card noPad className="flex flex-col" style={{ height: "80vh" }}>
         <div className="flex-1 overflow-y-auto p-5 space-y-3">
           {messages.map((m, i) => (
             <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[80%] px-4 py-2.5 text-sm rounded-2xl whitespace-pre-line ${
-                m.role === "user" ? "bg-indigo-600 text-white rounded-br-md" : "bg-slate-800 text-gray-200 border border-white/10 rounded-bl-md"
+                m.role === "user" ? "bg-brand text-white rounded-br-md" : "bg-app text-fg border rounded-bl-md"
               }`}>
                 {m.text}
               </div>
@@ -118,12 +118,12 @@ ${JSON.stringify(storeContext)}`;
         </div>
         <div className="px-5 pb-3 flex flex-wrap gap-2">
           {suggestions.map((s) => (
-            <button key={s} disabled={loading} onClick={() => send(s)} className="text-xs px-3 py-1.5 rounded-full bg-slate-800 border border-white/10 text-gray-300 hover:border-indigo-400 disabled:opacity-40">
+            <button key={s} disabled={loading} onClick={() => send(s)} className="text-xs px-3 py-1.5 rounded-full bg-app border text-muted hover:border-brand disabled:opacity-40">
               {s}
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-2 px-5 py-4 border-t border-white/10">
+        <div className="flex items-center gap-2 px-5 py-4 border-t">
           <input
             value={input}
             disabled={loading}
