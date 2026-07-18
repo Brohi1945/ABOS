@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sidebar, Topbar } from "../components/layout";
-import { bodyFont } from "../lib/theme";
+import { bodyFont } from "../theme";
 import { money, genId } from "../lib/utils";
 import { seedCampaigns } from "../lib/seedData";
 import { notifyLowStock } from "../lib/notify";
@@ -213,7 +213,7 @@ export default function AdminApp({
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0D12]" style={{ fontFamily: bodyFont }}>
+    <div className="min-h-screen bg-app" style={{ fontFamily: bodyFont }}>
       <Sidebar
         active={section}
         onSelect={onSectionChange}
