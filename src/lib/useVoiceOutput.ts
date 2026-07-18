@@ -80,6 +80,13 @@ export function useVoiceOutput({
   const requestIdRef = useRef(0);      // bumped on every new speak() call; lets stale retries/timers detect they're obsolete and bail out silently
   const attemptCountRef = useRef(0);
   const startedRef = useRef(false);
+  // Guards against BOTH onerror and the watchdog timeout firing for the
+  // SAME failed attempt and each independently scheduling a retry. Without
+  // this, a single genuine failure could spawn two parallel retry chains,
+  // each of which could again double — an exponential explosion of
+  // speak() calls and (once MAX_ATTEMPTS hit) duplicate "voice out nahi
+  // ho saka" toasts stacking up rapidly enough to freeze the page.
+  const attemptSettledRef = useRef(false);
   const preSpeakTimerRef = useRef<number | null>(null);
   const watchdogTimerRef = useRef<number | null>(null);
   const keepAliveTimerRef = useRef<number | null>(null);
@@ -144,6 +151,7 @@ export function useVoiceOutput({
 
     attemptCountRef.current += 1;
     startedRef.current = false;
+    attemptSettledRef.current = false;
 
     // Always cancel first — speaking on top of a half-dead queue is one of
     // the ways the engine gets stuck in the first place.
@@ -178,6 +186,7 @@ export function useVoiceOutput({
 
       utterance.onend = () => {
         if (myRequestId !== requestIdRef.current) return;
+        attemptSettledRef.current = true;
         setIsSpeaking(false);
         attemptCountRef.current = 0;
         clearAllTimers();
@@ -185,8 +194,12 @@ export function useVoiceOutput({
 
       utterance.onerror = () => {
         if (myRequestId !== requestIdRef.current) return;
+        // Already handled by the watchdog (or a prior error) for this
+        // exact attempt — don't schedule a second, parallel retry chain.
+        if (attemptSettledRef.current) return;
+        attemptSettledRef.current = true;
         setIsSpeaking(false);
-        if (keepAliveTimerRef.current) { window.clearInterval(keepAliveTimerRef.current); keepAliveTimerRef.current = null; }
+        clearAllTimers();
         scheduleRetryOrGiveUp(text, myRequestId);
       };
 
@@ -198,7 +211,11 @@ export function useVoiceOutput({
       // with no explanation." Detect it and retry.
       watchdogTimerRef.current = window.setTimeout(() => {
         if (myRequestId !== requestIdRef.current) return;
+        // Already handled (e.g. onerror already fired for this attempt,
+        // or it actually started) — don't double-schedule.
+        if (attemptSettledRef.current) return;
         if (!startedRef.current) {
+          attemptSettledRef.current = true;
           scheduleRetryOrGiveUp(text, myRequestId);
         }
       }, START_TIMEOUT_MS);
