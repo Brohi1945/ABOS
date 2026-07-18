@@ -260,6 +260,7 @@ export default function AdminApp({
             onAddCustomer={handleAddCustomer}
             onAddCampaign={handleAddCampaign}
             onCreateOrder={handleCreateOrder}
+            onSectionChange={onSectionChange}
           />
         );
       default:
