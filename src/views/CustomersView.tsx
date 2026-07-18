@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Users, Search, Plus, Download, ChevronRight } from "lucide-react";
-import { displayFont } from "../lib/theme";
+import { displayFont } from "../theme";
 import { money, computeCustomerStats } from "../lib/utils";
 import { Card, StatusBadge, Button, Drawer, Modal, Field, inputCls, EmptyState } from "../components/ui";
 
@@ -48,7 +48,7 @@ export default function CustomersView({ customers, orders, onAdd }: CustomersVie
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h2 className="text-xl font-bold text-[#E8E9ED]" style={{ fontFamily: displayFont }}>Customers</h2>
+        <h2 className="text-xl font-bold text-fg" style={{ fontFamily: displayFont }}>Customers</h2>
         <div className="flex gap-2">
           <Button variant="secondary" size="sm" icon={Download}>Export list</Button>
           <Button size="sm" icon={Plus} onClick={() => setModalOpen(true)}>Add customer</Button>
@@ -56,7 +56,7 @@ export default function CustomersView({ customers, orders, onAdd }: CustomersVie
       </div>
 
       <div className="relative max-w-xs">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8B8F9C]" />
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
         <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search customers…" className={`${inputCls} pl-9`} />
       </div>
 
@@ -67,7 +67,7 @@ export default function CustomersView({ customers, orders, onAdd }: CustomersVie
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-[11px] text-[#8B8F9C] font-semibold uppercase tracking-wide">
+              <tr className="text-left text-[11px] text-muted font-semibold uppercase tracking-wide">
                 <th className="px-5 py-3">Customer</th>
                 <th className="px-5 py-3">Phone</th>
                 <th className="px-5 py-3">Orders</th>
@@ -80,20 +80,20 @@ export default function CustomersView({ customers, orders, onAdd }: CustomersVie
               {filtered.map((c) => {
                 const stats = computeCustomerStats(c, orders);
                 return (
-                <tr key={c.id} onClick={() => setSelected(c)} className="border-t border-[rgba(255,255,255,0.06)] hover:bg-white/5 transition cursor-pointer">
+                <tr key={c.id} onClick={() => setSelected(c)} className="border-t border hover:bg-white/5 transition cursor-pointer">
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-full bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-xs font-bold shrink-0">
                         {c.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
                       </div>
-                      <span className="font-semibold text-[#E8E9ED]">{c.name}</span>
+                      <span className="font-semibold text-fg">{c.name}</span>
                     </div>
                   </td>
-                  <td className="px-5 py-3.5 text-[#8B8F9C]">{c.phone}</td>
-                  <td className="px-5 py-3.5 text-[#C7C9D1]">{stats.orders}</td>
-                  <td className="px-5 py-3.5 text-[#E8E9ED] font-medium">{money(stats.spent)}</td>
-                  <td className="px-5 py-3.5 text-[#8B8F9C] text-xs">{stats.lastOrder}</td>
-                  <td className="px-5 py-3.5 text-right"><ChevronRight size={15} className="text-[#6B7080]" /></td>
+                  <td className="px-5 py-3.5 text-muted">{c.phone}</td>
+                  <td className="px-5 py-3.5 text-muted">{stats.orders}</td>
+                  <td className="px-5 py-3.5 text-fg font-medium">{money(stats.spent)}</td>
+                  <td className="px-5 py-3.5 text-muted text-xs">{stats.lastOrder}</td>
+                  <td className="px-5 py-3.5 text-right"><ChevronRight size={15} className="text-muted" /></td>
                 </tr>
                 );
               })}
@@ -113,37 +113,37 @@ export default function CustomersView({ customers, orders, onAdd }: CustomersVie
                 {selected.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
               </div>
               <div>
-                <div className="font-semibold text-[#E8E9ED] text-sm">{selected.name}</div>
-                <div className="text-xs text-[#8B8F9C]">{selected.phone} · {selected.email}</div>
+                <div className="font-semibold text-fg text-sm">{selected.name}</div>
+                <div className="text-xs text-muted">{selected.phone} · {selected.email}</div>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-xl bg-white/5 p-3">
-                <div className="text-[10px] text-[#8B8F9C] font-medium mb-1">Total orders</div>
-                <div className="text-lg font-bold text-[#E8E9ED]">{stats.orders}</div>
+                <div className="text-[10px] text-muted font-medium mb-1">Total orders</div>
+                <div className="text-lg font-bold text-fg">{stats.orders}</div>
               </div>
               <div className="rounded-xl bg-white/5 p-3">
-                <div className="text-[10px] text-[#8B8F9C] font-medium mb-1">Total spent</div>
-                <div className="text-lg font-bold text-[#E8E9ED]">{money(stats.spent)}</div>
+                <div className="text-[10px] text-muted font-medium mb-1">Total spent</div>
+                <div className="text-lg font-bold text-fg">{money(stats.spent)}</div>
               </div>
             </div>
             <div>
-              <div className="text-xs font-semibold text-[#8B8F9C] mb-2">Order history</div>
+              <div className="text-xs font-semibold text-muted mb-2">Order history</div>
               <div className="space-y-2">
                 {orders.filter((o) => o.customer === selected.name).map((o) => (
                   <div key={o.id} className="flex items-center justify-between bg-white/5 rounded-lg px-3 py-2.5 text-sm">
                     <div>
-                      <div className="font-semibold text-[#C7C9D1]">{o.id}</div>
-                      <div className="text-[11px] text-[#8B8F9C]">{o.date}</div>
+                      <div className="font-semibold text-muted">{o.id}</div>
+                      <div className="text-[11px] text-muted">{o.date}</div>
                     </div>
                     <div className="text-right">
-                      <div className="font-semibold text-[#E8E9ED]">{money(o.total)}</div>
+                      <div className="font-semibold text-fg">{money(o.total)}</div>
                       <StatusBadge status={o.status} />
                     </div>
                   </div>
                 ))}
                 {orders.filter((o) => o.customer === selected.name).length === 0 && (
-                  <div className="text-xs text-[#8B8F9C] text-center py-4">No orders yet.</div>
+                  <div className="text-xs text-muted text-center py-4">No orders yet.</div>
                 )}
               </div>
             </div>
