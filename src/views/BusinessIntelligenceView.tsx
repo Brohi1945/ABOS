@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { TrendingUp, Star, Percent, Archive } from "lucide-react";
-import { displayFont } from "../lib/theme";
+import { displayFont } from "../theme";
 import { money, computeProductInsights, marginTone } from "../lib/utils";
 import { Card, Badge, StatCard, EmptyState } from "../components/ui";
 
@@ -27,8 +27,8 @@ export default function BusinessIntelligenceView({ orders, products }: BusinessI
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-bold text-[#E8E9ED]" style={{ fontFamily: displayFont }}>Business Intelligence</h2>
-        <p className="text-sm text-[#8B8F9C]">Profit, best-sellers, and dead stock — computed from your live orders and inventory.</p>
+        <h2 className="text-xl font-bold text-fg" style={{ fontFamily: displayFont }}>Business Intelligence</h2>
+        <p className="text-sm text-muted">Profit, best-sellers, and dead stock — computed from your live orders and inventory.</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -46,7 +46,7 @@ export default function BusinessIntelligenceView({ orders, products }: BusinessI
 
       <Card noPad>
         <div className="flex items-center justify-between px-5 pt-5 mb-3">
-          <h3 className="font-bold text-[#E8E9ED] text-sm" style={{ fontFamily: displayFont }}>Best-selling products</h3>
+          <h3 className="font-bold text-fg text-sm" style={{ fontFamily: displayFont }}>Best-selling products</h3>
           <Badge tone="indigo">By units sold</Badge>
         </div>
         {bestSellers.every((p) => p.unitsSold === 0) ? (
@@ -60,11 +60,11 @@ export default function BusinessIntelligenceView({ orders, products }: BusinessI
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-semibold text-[#E8E9ED] truncate">{p.name}</span>
-                    <span className="text-xs font-semibold text-[#8B8F9C] shrink-0 ml-2">{p.unitsSold} sold · {money(p.revenue)}</span>
+                    <span className="text-xs font-semibold text-fg truncate">{p.name}</span>
+                    <span className="text-xs font-semibold text-muted shrink-0 ml-2">{p.unitsSold} sold · {money(p.revenue)}</span>
                   </div>
                   <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
-                    <div className="h-full bg-[#C9A44C] rounded-full" style={{ width: `${Math.max(4, (p.unitsSold / topSellerUnits) * 100)}%` }} />
+                    <div className="h-full bg-brand rounded-full" style={{ width: `${Math.max(4, (p.unitsSold / topSellerUnits) * 100)}%` }} />
                   </div>
                 </div>
               </div>
@@ -74,11 +74,11 @@ export default function BusinessIntelligenceView({ orders, products }: BusinessI
       </Card>
 
       <Card noPad>
-        <h3 className="font-bold text-[#E8E9ED] text-sm px-5 pt-5 mb-1" style={{ fontFamily: displayFont }}>Profit &amp; margin per product</h3>
+        <h3 className="font-bold text-fg text-sm px-5 pt-5 mb-1" style={{ fontFamily: displayFont }}>Profit &amp; margin per product</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-sm mt-2">
             <thead>
-              <tr className="text-left text-[11px] text-[#8B8F9C] font-semibold uppercase tracking-wide">
+              <tr className="text-left text-[11px] text-muted font-semibold uppercase tracking-wide">
                 <th className="px-5 py-2">Product</th>
                 <th className="px-5 py-2">Price</th>
                 <th className="px-5 py-2">Cost</th>
@@ -89,15 +89,15 @@ export default function BusinessIntelligenceView({ orders, products }: BusinessI
             </thead>
             <tbody>
               {byMargin.map((p) => (
-                <tr key={p.id} className="border-t border-[rgba(255,255,255,0.06)]">
-                  <td className="px-5 py-3 font-semibold text-[#E8E9ED]">{p.name}</td>
-                  <td className="px-5 py-3 text-[#C7C9D1]">{money(p.price)}</td>
-                  <td className="px-5 py-3 text-[#8B8F9C]">{money(p.cost)}</td>
+                <tr key={p.id} className="border-t border">
+                  <td className="px-5 py-3 font-semibold text-fg">{p.name}</td>
+                  <td className="px-5 py-3 text-muted">{money(p.price)}</td>
+                  <td className="px-5 py-3 text-muted">{money(p.cost)}</td>
                   <td className="px-5 py-3">
                     <Badge tone={marginTone(p.marginPct)}>{money(p.marginRs)} · {p.marginPct.toFixed(0)}%</Badge>
                   </td>
-                  <td className="px-5 py-3 text-[#C7C9D1]">{p.unitsSold}</td>
-                  <td className="px-5 py-3 font-medium text-[#E8E9ED]">{money(p.profitContribution)}</td>
+                  <td className="px-5 py-3 text-muted">{p.unitsSold}</td>
+                  <td className="px-5 py-3 font-medium text-fg">{money(p.profitContribution)}</td>
                 </tr>
               ))}
             </tbody>
@@ -107,7 +107,7 @@ export default function BusinessIntelligenceView({ orders, products }: BusinessI
 
       <Card noPad>
         <div className="flex items-center justify-between px-5 pt-5 mb-1">
-          <h3 className="font-bold text-[#E8E9ED] text-sm" style={{ fontFamily: displayFont }}>Dead stock report</h3>
+          <h3 className="font-bold text-fg text-sm" style={{ fontFamily: displayFont }}>Dead stock report</h3>
           {deadStock.length > 0 && <Badge tone="red">{money(deadStockValue)} tied up</Badge>}
         </div>
         {deadStock.length === 0 ? (
@@ -116,7 +116,7 @@ export default function BusinessIntelligenceView({ orders, products }: BusinessI
           <div className="overflow-x-auto">
             <table className="w-full text-sm mt-2">
               <thead>
-                <tr className="text-left text-[11px] text-[#8B8F9C] font-semibold uppercase tracking-wide">
+                <tr className="text-left text-[11px] text-muted font-semibold uppercase tracking-wide">
                   <th className="px-5 py-2">Product</th>
                   <th className="px-5 py-2">Category</th>
                   <th className="px-5 py-2">Stock on hand</th>
@@ -125,10 +125,10 @@ export default function BusinessIntelligenceView({ orders, products }: BusinessI
               </thead>
               <tbody>
                 {deadStock.map((p) => (
-                  <tr key={p.id} className="border-t border-[rgba(255,255,255,0.06)]">
-                    <td className="px-5 py-3 font-semibold text-[#E8E9ED]">{p.name}</td>
-                    <td className="px-5 py-3 text-[#8B8F9C]">{p.category}</td>
-                    <td className="px-5 py-3 text-[#C7C9D1]">{p.stock} units</td>
+                  <tr key={p.id} className="border-t border">
+                    <td className="px-5 py-3 font-semibold text-fg">{p.name}</td>
+                    <td className="px-5 py-3 text-muted">{p.category}</td>
+                    <td className="px-5 py-3 text-muted">{p.stock} units</td>
                     <td className="px-5 py-3 font-medium text-red-400">{money(p.capitalTiedUp)}</td>
                   </tr>
                 ))}
