@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ShoppingCart, Users, Wallet, AlertTriangle } from "lucide-react";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from "recharts";
-import { displayFont } from "../lib/theme";
+import { displayFont } from "../theme";
 import { money, todayLabel, computeWeeklyTrend } from "../lib/utils";
 import { Card, Badge, StatCard, StatusBadge } from "../components/ui";
 import { SkeletonStatCard, SkeletonChart, SkeletonTable } from "../components/Skeleton";
@@ -48,8 +48,8 @@ export default function DashboardView({ orders, products, customers, onGoTo }: D
     return (
       <div className="space-y-5">
         <div>
-          <div className="h-8 w-48 bg-[#1B1F2A] rounded-lg animate-pulse" />
-          <div className="h-4 w-64 bg-[#1B1F2A] rounded-lg mt-2 animate-pulse" />
+          <div className="h-8 w-48 bg-surface rounded-lg animate-pulse" />
+          <div className="h-4 w-64 bg-surface rounded-lg mt-2 animate-pulse" />
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -61,18 +61,18 @@ export default function DashboardView({ orders, products, customers, onGoTo }: D
             <SkeletonChart />
           </div>
           <div>
-            <div className="bg-[#14171F] border border-[rgba(255,255,255,0.06)] rounded-xl p-5">
+            <div className="bg-app border rounded-xl p-5">
               <div className="flex items-center justify-between mb-3">
-                <div className="h-4 w-24 bg-[#1B1F2A] rounded animate-pulse" />
-                <div className="h-4 w-16 bg-[#1B1F2A] rounded animate-pulse" />
+                <div className="h-4 w-24 bg-surface rounded animate-pulse" />
+                <div className="h-4 w-16 bg-surface rounded animate-pulse" />
               </div>
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="flex items-center justify-between py-2.5 border-t border-[rgba(255,255,255,0.06)]">
+                <div key={i} className="flex items-center justify-between py-2.5 border-t border">
                   <div>
-                    <div className="h-3 w-32 bg-[#1B1F2A] rounded animate-pulse" />
-                    <div className="h-2 w-20 bg-[#1B1F2A] rounded mt-1 animate-pulse" />
+                    <div className="h-3 w-32 bg-surface rounded animate-pulse" />
+                    <div className="h-2 w-20 bg-surface rounded mt-1 animate-pulse" />
                   </div>
-                  <div className="h-5 w-16 bg-[#1B1F2A] rounded animate-pulse" />
+                  <div className="h-5 w-16 bg-surface rounded animate-pulse" />
                 </div>
               ))}
             </div>
@@ -86,10 +86,10 @@ export default function DashboardView({ orders, products, customers, onGoTo }: D
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-bold text-[#E8E9ED]" style={{ fontFamily: displayFont }}>
+        <h2 className="text-xl font-bold text-fg" style={{ fontFamily: displayFont }}>
           Good to see you 👋
         </h2>
-        <p className="text-sm text-[#8B8F9C]">{todayLabel()} — here's how the business is doing.</p>
+        <p className="text-sm text-muted">{todayLabel()} — here's how the business is doing.</p>
       </div>
 
       <motion.div
@@ -127,7 +127,7 @@ export default function DashboardView({ orders, products, customers, onGoTo }: D
       <div className="grid lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-2">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold text-[#E8E9ED] text-sm" style={{ fontFamily: displayFont }}>
+            <h3 className="font-bold text-fg text-sm" style={{ fontFamily: displayFont }}>
               Sales this week
             </h3>
             <Badge tone="green">{money(weekTotal)} total</Badge>
@@ -137,27 +137,27 @@ export default function DashboardView({ orders, products, customers, onGoTo }: D
               <AreaChart data={weeklyTrend}>
                 <defs>
                   <linearGradient id="dashGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#C9A44C" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="#C9A44C" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#6366F1" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="#6366F1" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="day" tick={{ fontSize: 11, fill: "#8B8F9C" }} axisLine={false} tickLine={false} />
+                <XAxis dataKey="day" tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={false} tickLine={false} />
                 <YAxis hide />
                 <Tooltip
                   formatter={(v: any) => money(v)}
                   contentStyle={{
-                    background: "#1B1F2A",
+                    background: "#111827",
                     borderRadius: 12,
-                    border: "1px solid rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255, 255, 255, 0.08)",
                     fontSize: 12,
                   }}
-                  labelStyle={{ color: "#8B8F9C" }}
-                  itemStyle={{ color: "#E8E9ED" }}
+                  labelStyle={{ color: "#9CA3AF" }}
+                  itemStyle={{ color: "#E5E7EB" }}
                 />
                 <Area
                   type="monotone"
                   dataKey="sales"
-                  stroke="#C9A44C"
+                  stroke="#6366F1"
                   strokeWidth={2.5}
                   fill="url(#dashGrad)"
                   {...CHART_ANIMATION}
@@ -169,7 +169,7 @@ export default function DashboardView({ orders, products, customers, onGoTo }: D
 
         <Card noPad>
           <div className="flex items-center justify-between px-5 pt-5 mb-1">
-            <h3 className="font-bold text-[#E8E9ED] text-sm" style={{ fontFamily: displayFont }}>
+            <h3 className="font-bold text-fg text-sm" style={{ fontFamily: displayFont }}>
               Low stock
             </h3>
             <button onClick={() => onGoTo("inventory")} className="text-[11px] font-semibold text-indigo-400">
@@ -177,14 +177,14 @@ export default function DashboardView({ orders, products, customers, onGoTo }: D
             </button>
           </div>
           {lowStock.length === 0 ? (
-            <div className="px-5 py-8 text-xs text-[#8B8F9C] text-center">Everything is well stocked.</div>
+            <div className="px-5 py-8 text-xs text-muted text-center">Everything is well stocked.</div>
           ) : (
             <div className="divide-y divide-white/5">
               {lowStock.slice(0, 5).map((p) => (
                 <div key={p.id} className="flex items-center justify-between px-5 py-2.5">
                   <div>
-                    <div className="text-xs font-semibold text-[#C7C9D1]">{p.name}</div>
-                    <div className="text-[10px] text-[#8B8F9C]">{p.category}</div>
+                    <div className="text-xs font-semibold text-muted">{p.name}</div>
+                    <div className="text-[10px] text-muted">{p.category}</div>
                   </div>
                   <Badge tone="red">{p.stock} left</Badge>
                 </div>
@@ -196,7 +196,7 @@ export default function DashboardView({ orders, products, customers, onGoTo }: D
 
       <Card noPad>
         <div className="flex items-center justify-between px-5 pt-5 mb-1">
-          <h3 className="font-bold text-[#E8E9ED] text-sm" style={{ fontFamily: displayFont }}>
+          <h3 className="font-bold text-fg text-sm" style={{ fontFamily: displayFont }}>
             Recent orders
           </h3>
           <button onClick={() => onGoTo("orders")} className="text-[11px] font-semibold text-indigo-400">
@@ -206,7 +206,7 @@ export default function DashboardView({ orders, products, customers, onGoTo }: D
         <div className="overflow-x-auto">
           <table className="w-full text-sm mt-2">
             <thead>
-              <tr className="text-left text-[11px] text-[#8B8F9C] font-semibold uppercase tracking-wide">
+              <tr className="text-left text-[11px] text-muted font-semibold uppercase tracking-wide">
                 <th className="px-5 py-2 font-semibold">Order</th>
                 <th className="px-5 py-2 font-semibold">Customer</th>
                 <th className="px-5 py-2 font-semibold">Total</th>
@@ -215,10 +215,10 @@ export default function DashboardView({ orders, products, customers, onGoTo }: D
             </thead>
             <tbody>
               {recentOrders.map((o) => (
-                <tr key={o.id} className="border-t border-[rgba(255,255,255,0.06)] hover:bg-white/5 transition">
-                  <td className="px-5 py-3 font-semibold text-[#E8E9ED]">{o.id}</td>
-                  <td className="px-5 py-3 text-[#C7C9D1]">{o.customer}</td>
-                  <td className="px-5 py-3 text-[#E8E9ED] font-medium">{money(o.total)}</td>
+                <tr key={o.id} className="border-t border hover:bg-white/5 transition">
+                  <td className="px-5 py-3 font-semibold text-fg">{o.id}</td>
+                  <td className="px-5 py-3 text-muted">{o.customer}</td>
+                  <td className="px-5 py-3 text-fg font-medium">{money(o.total)}</td>
                   <td className="px-5 py-3">
                     <StatusBadge status={o.status} />
                   </td>
