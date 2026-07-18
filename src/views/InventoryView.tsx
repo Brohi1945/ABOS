@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Package, Search, Plus, Pencil, Trash2, Users } from "lucide-react";
-import { displayFont } from "../lib/theme";
+import { displayFont } from "../theme";
 import { money } from "../lib/utils";
 import { CATEGORIES } from "../lib/seedData";
 import { Card, Badge, Button, Modal, Field, inputCls, EmptyState } from "../components/ui";
@@ -121,10 +121,10 @@ export default function InventoryView({ products, onAdd, onEdit, onDelete }: Inv
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="h-8 w-32 bg-[#1B1F2A] rounded-lg animate-pulse" />
-          <div className="h-9 w-32 bg-[#1B1F2A] rounded-lg animate-pulse" />
+          <div className="h-8 w-32 bg-app rounded-lg animate-pulse" />
+          <div className="h-9 w-32 bg-app rounded-lg animate-pulse" />
         </div>
-        <div className="h-10 w-48 bg-[#1B1F2A] rounded-xl animate-pulse" />
+        <div className="h-10 w-48 bg-app rounded-xl animate-pulse" />
         <SkeletonTable rows={6} cols={6} />
       </div>
     );
@@ -133,7 +133,7 @@ export default function InventoryView({ products, onAdd, onEdit, onDelete }: Inv
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h2 className="text-xl font-bold text-[#E8E9ED]" style={{ fontFamily: displayFont }}>
+        <h2 className="text-xl font-bold text-fg" style={{ fontFamily: displayFont }}>
           Inventory
         </h2>
         <Button icon={Plus} onClick={() => setModal({ mode: "add" })}>
@@ -142,7 +142,7 @@ export default function InventoryView({ products, onAdd, onEdit, onDelete }: Inv
       </div>
 
       <div className="relative max-w-xs">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8B8F9C]" />
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -158,7 +158,7 @@ export default function InventoryView({ products, onAdd, onEdit, onDelete }: Inv
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-[11px] text-[#8B8F9C] font-semibold uppercase tracking-wide">
+                <tr className="text-left text-[11px] text-muted font-semibold uppercase tracking-wide">
                   <th className="px-5 py-3">Product</th>
                   <th className="px-5 py-3">Category</th>
                   <th className="px-5 py-3">Price</th>
@@ -169,7 +169,7 @@ export default function InventoryView({ products, onAdd, onEdit, onDelete }: Inv
               </thead>
               <tbody>
                 {filtered.map((p) => (
-                  <tr key={p.id} className="border-t border-[rgba(255,255,255,0.06)] hover:bg-white/5 transition">
+                  <tr key={p.id} className="border-t hover:bg-fg/5 transition">
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
                         <div
@@ -178,14 +178,14 @@ export default function InventoryView({ products, onAdd, onEdit, onDelete }: Inv
                           {p.name.slice(0, 1)}
                         </div>
                         <div>
-                          <div className="font-semibold text-[#E8E9ED]">{p.name}</div>
-                          <div className="text-[11px] text-[#8B8F9C]">{p.barcode}</div>
+                          <div className="font-semibold text-fg">{p.name}</div>
+                          <div className="text-[11px] text-muted">{p.barcode}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-3.5 text-[#8B8F9C]">{p.category}</td>
-                    <td className="px-5 py-3.5 text-[#E8E9ED] font-medium">{money(p.price)}</td>
-                    <td className="px-5 py-3.5 text-[#C7C9D1]">{p.stock} units</td>
+                    <td className="px-5 py-3.5 text-muted">{p.category}</td>
+                    <td className="px-5 py-3.5 text-fg font-medium">{money(p.price)}</td>
+                    <td className="px-5 py-3.5 text-fg">{p.stock} units</td>
                     <td className="px-5 py-3.5">
                       {p.stock === 0 ? (
                         <Badge tone="red">Out of stock</Badge>
@@ -201,20 +201,20 @@ export default function InventoryView({ products, onAdd, onEdit, onDelete }: Inv
                           <button
                             onClick={() => openWaitlist(p)}
                             title="View waitlist"
-                            className="w-8 h-8 rounded-lg hover:bg-indigo-500/10 flex items-center justify-center text-[#8B8F9C] hover:text-indigo-400"
+                            className="w-8 h-8 rounded-lg hover:bg-indigo-500/10 flex items-center justify-center text-muted hover:text-indigo-400"
                           >
                             <Users size={14} />
                           </button>
                         )}
                         <button
                           onClick={() => setModal({ mode: "edit", product: p })}
-                          className="w-8 h-8 rounded-lg hover:bg-white/5 flex items-center justify-center text-[#8B8F9C]"
+                          className="w-8 h-8 rounded-lg hover:bg-fg/5 flex items-center justify-center text-muted"
                         >
                           <Pencil size={14} />
                         </button>
                         <button
                           onClick={() => setConfirmDelete(p)}
-                          className="w-8 h-8 rounded-lg hover:bg-red-500/10 flex items-center justify-center text-[#8B8F9C] hover:text-red-400"
+                          className="w-8 h-8 rounded-lg hover:bg-red-500/10 flex items-center justify-center text-muted hover:text-red-400"
                         >
                           <Trash2 size={14} />
                         </button>
@@ -249,8 +249,8 @@ export default function InventoryView({ products, onAdd, onEdit, onDelete }: Inv
       <Modal open={!!confirmDelete} onClose={() => setConfirmDelete(null)} title="Delete product" width={380}>
         {confirmDelete && (
           <div>
-            <p className="text-sm text-[#C7C9D1] mb-5">
-              Remove <span className="font-semibold text-[#E8E9ED]">{confirmDelete.name}</span> from inventory? This can't
+            <p className="text-sm text-muted mb-5">
+              Remove <span className="font-semibold text-fg">{confirmDelete.name}</span> from inventory? This can't
               be undone.
             </p>
             <div className="flex gap-2">
@@ -274,18 +274,18 @@ export default function InventoryView({ products, onAdd, onEdit, onDelete }: Inv
 
       <Modal open={!!waitlistFor} onClose={() => setWaitlistFor(null)} title={waitlistFor ? `Waitlist — ${waitlistFor.name}` : "Waitlist"} width={420}>
         {waitlistLoading ? (
-          <div className="text-sm text-[#8B8F9C] py-6 text-center">Loading…</div>
+          <div className="text-sm text-muted py-6 text-center">Loading…</div>
         ) : waitlistEntries.length === 0 ? (
           <EmptyState icon={Users} title="No one waiting" note="Jab koi customer is product ke liye waitlist join karega, yahan dikhega." />
         ) : (
           <div className="space-y-2">
             {waitlistEntries.map((w, i) => (
-              <div key={w.id} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl bg-[#1B1F2A] border border-[rgba(255,255,255,0.06)]">
+              <div key={w.id} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl bg-app border">
                 <div className="min-w-0">
-                  <div className="text-sm font-semibold text-[#E8E9ED] truncate">
+                  <div className="text-sm font-semibold text-fg truncate">
                     #{i + 1} {w.customer_name}
                   </div>
-                  <div className="text-[11px] text-[#8B8F9C]">{w.phone} · {w.qty} unit(s)</div>
+                  <div className="text-[11px] text-muted">{w.phone} · {w.qty} unit(s)</div>
                 </div>
                 <Badge
                   tone={
