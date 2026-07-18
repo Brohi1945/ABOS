@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import {
   Bot, Plus, X, Sparkles, Send, ShoppingBag, Minus, ArrowLeft, CheckCircle2, PackageCheck, Loader2,
 } from "lucide-react";
-import { displayFont, bodyFont } from "../lib/theme";
+import { displayFont, bodyFont } from "../theme";
 import { CATEGORIES } from "../lib/seedData";
 import { genId, money } from "../lib/utils";
 import { availableStock } from "../lib/waitlist";
@@ -121,40 +121,40 @@ return (
     <>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="fixed bottom-5 right-5 z-40 w-14 h-14 rounded-full bg-[#C9A44C] text-black shadow-lg shadow-black/40 flex items-center justify-center hover:bg-[#8A712F] transition"
+        className="fixed bottom-5 right-5 z-40 w-14 h-14 rounded-full bg-brand text-white shadow-lg shadow-black/40 flex items-center justify-center hover:opacity-90 transition"
       >
         {open ? <X size={22} /> : <Bot size={22} />}
       </button>
 
       {open && (
-        <div className="fixed bottom-24 right-5 z-40 w-[94%] max-w-md bg-[#14171F] rounded-2xl border border-[rgba(255,255,255,0.06)] shadow-2xl flex flex-col overflow-hidden" style={{ height: "78vh", maxHeight: 680 }}>
-          <div className="flex items-center gap-2 px-4 py-3.5 border-b border-[rgba(255,255,255,0.06)] bg-[#0B0D12] text-[#E8E9ED] shrink-0">
+        <div className="fixed bottom-24 right-5 z-40 w-[94%] max-w-md bg-app rounded-2xl border shadow-2xl flex flex-col overflow-hidden" style={{ height: "78vh", maxHeight: 680 }}>
+          <div className="flex items-center gap-2 px-4 py-3.5 border-b border bg-app text-fg shrink-0">
             <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center">
               <Bot size={14} />
             </div>
             <div>
               <div className="text-sm font-bold" style={{ fontFamily: displayFont }}>Store Assistant</div>
-              <div className="text-[10px] text-[#8B8F9C]">Usually replies instantly</div>
+              <div className="text-[10px] text-muted">Usually replies instantly</div>
             </div>
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div className={`max-w-[82%] px-3.5 py-2 text-sm rounded-2xl ${
-                  m.role === "user" ? "bg-[#C9A44C] text-black rounded-br-md" : "bg-white/5 text-[#C7C9D1] border border-[rgba(255,255,255,0.06)] rounded-bl-md"
+                  m.role === "user" ? "bg-brand text-white rounded-br-md" : "bg-white/5 text-muted border rounded-bl-md"
                 }`}>
                   {m.text}
                 </div>
               </div>
             ))}
             {loading && (
-              <div className="flex items-center gap-1 px-3.5 py-2 bg-white/5 border border-[rgba(255,255,255,0.06)] rounded-2xl rounded-bl-md w-fit">
+              <div className="flex items-center gap-1 px-3.5 py-2 bg-white/5 border rounded-2xl rounded-bl-md w-fit">
                 <Loader2 size={12} className="animate-spin text-indigo-400" />
-                <span className="text-[10px] text-[#8B8F9C]">Typing…</span>
+                <span className="text-[10px] text-muted">Typing…</span>
               </div>
             )}
             {lastOrderId && (
-              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-green-400 bg-green-500/10 border border-green-500/20 rounded-xl px-3 py-2 w-fit">
+              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-green-400 bg-green-500/10 border-green-500/20 rounded-xl px-3 py-2 w-fit">
                 <CheckCircle2 size={12} /> Order {lastOrderId} placed!
               </div>
             )}
@@ -162,12 +162,12 @@ return (
           </div>
           <div className="px-4 pb-2.5 flex flex-wrap gap-1.5 shrink-0">
             {suggestions.map((s) => (
-              <button key={s} disabled={loading} onClick={() => send(s)} className="text-[10px] px-2.5 py-1.5 rounded-full bg-white/5 border border-[rgba(255,255,255,0.06)] text-[#8B8F9C] hover:border-indigo-500/40 disabled:opacity-40">
+              <button key={s} disabled={loading} onClick={() => send(s)} className="text-[10px] px-2.5 py-1.5 rounded-full bg-white/5 border text-muted hover:border-indigo-500/40 disabled:opacity-40">
                 {s}
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-2 px-4 py-3 border-t border-[rgba(255,255,255,0.06)] shrink-0">
+          <div className="flex items-center gap-2 px-4 py-3 border-t border shrink-0">
             <input
               value={input}
               disabled={loading}
@@ -269,19 +269,19 @@ export default function StoreScreen({ products, onBack, onLogin, placedOrders, o
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0D12]" style={{ fontFamily: bodyFont }}>
-      <div className="sticky top-0 z-30 bg-[#14171F] border-b border-[rgba(255,255,255,0.06)]">
+    <div className="min-h-screen bg-app" style={{ fontFamily: bodyFont }}>
+      <div className="sticky top-0 z-30 bg-app border-b border">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex items-center gap-3">
-          <button onClick={onBack} className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center text-[#8B8F9C] shrink-0">
+          <button onClick={onBack} className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center text-muted shrink-0">
             <ArrowLeft size={16} />
           </button>
-          <div className="flex items-center gap-2 font-bold text-[#E8E9ED]" style={{ fontFamily: displayFont }}>
-            <Sparkles size={16} className="text-[#C9A44C]" /> AB Store
+          <div className="flex items-center gap-2 font-bold text-fg" style={{ fontFamily: displayFont }}>
+            <Sparkles size={16} className="text-brand" /> AB Store
           </div>
           <div className="flex-1" />
           <div className="flex gap-1.5 bg-white/5 p-1 rounded-xl">
-            <button onClick={() => setView("browse")} className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition ${view === "browse" ? "bg-[#0B0D12] text-[#C9A44C] shadow-sm" : "text-[#8B8F9C]"}`}>Shop</button>
-            <button onClick={() => setView("tracking")} className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition ${view === "tracking" ? "bg-[#0B0D12] text-[#C9A44C] shadow-sm" : "text-[#8B8F9C]"}`}>My Orders</button>
+            <button onClick={() => setView("browse")} className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition ${view === "browse" ? "bg-app text-brand shadow-sm" : "text-muted"}`}>Shop</button>
+            <button onClick={() => setView("tracking")} className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition ${view === "tracking" ? "bg-app text-brand shadow-sm" : "text-muted"}`}>My Orders</button>
           </div>
           <button onClick={() => setCartOpen(true)} className="relative w-9 h-9 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center shrink-0">
             <ShoppingBag size={16} />
@@ -294,37 +294,37 @@ export default function StoreScreen({ products, onBack, onLogin, placedOrders, o
         {view === "browse" ? (
           <>
             <div className="mb-5">
-              <h1 className="text-2xl font-bold text-[#E8E9ED] mb-1" style={{ fontFamily: displayFont }}>Shop essentials, delivered fast.</h1>
-              <p className="text-sm text-[#8B8F9C]">Fresh groceries and daily needs from your neighbourhood store.</p>
+              <h1 className="text-2xl font-bold text-fg mb-1" style={{ fontFamily: displayFont }}>Shop essentials, delivered fast.</h1>
+              <p className="text-sm text-muted">Fresh groceries and daily needs from your neighbourhood store.</p>
             </div>
             <div className="flex gap-2 overflow-x-auto pb-1 mb-5">
               {cats.map((c) => (
-                <button key={c} onClick={() => setCategory(c)} className={`text-xs font-semibold px-3.5 py-2 rounded-xl whitespace-nowrap transition ${category === c ? "bg-[#C9A44C] text-black" : "bg-[#14171F] border border-[rgba(255,255,255,0.06)] text-[#8B8F9C]"}`}>
+                <button key={c} onClick={() => setCategory(c)} className={`text-xs font-semibold px-3.5 py-2 rounded-xl whitespace-nowrap transition ${category === c ? "bg-brand text-white" : "bg-app border text-muted"}`}>
                   {c}
                 </button>
               ))}
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {filtered.map((p) => (
-                <div key={p.id} className="bg-[#14171F] rounded-xl border border-[rgba(255,255,255,0.06)] shadow-sm p-4 flex flex-col">
+                <div key={p.id} className="bg-app rounded-xl border shadow-sm p-4 flex flex-col">
                   <div className={`w-full aspect-square rounded-lg flex items-center justify-center text-2xl font-bold mb-3 ${p.color}`}>
                     {p.name.slice(0, 1)}
                   </div>
-                  <div className="text-xs font-semibold text-[#E8E9ED] leading-snug mb-1 flex-1">{p.name}</div>
-                  <div className="text-[11px] text-[#8B8F9C] mb-2">{p.category}</div>
+                  <div className="text-xs font-semibold text-fg leading-snug mb-1 flex-1">{p.name}</div>
+                  <div className="text-[11px] text-muted mb-2">{p.category}</div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-bold text-indigo-400">{money(p.price)}</span>
                     {availableStock(p) <= 0 ? (
                       <button
                         onClick={() => setWaitlistModal(p)}
-                        className="text-[10px] font-semibold text-[#C9A44C] hover:underline"
+                        className="text-[10px] font-semibold text-brand hover:underline"
                       >
                         Notify me
                       </button>
                     ) : (cart.find((it) => it.productId === p.id)?.qty || 0) >= availableStock(p) ? (
-                      <span className="text-[10px] font-semibold text-[#8B8F9C]">Max in cart</span>
+                      <span className="text-[10px] font-semibold text-muted">Max in cart</span>
                     ) : (
-                      <button onClick={() => addToCart(p)} className="w-7 h-7 rounded-lg bg-[#C9A44C] text-black flex items-center justify-center hover:bg-[#8A712F]">
+                      <button onClick={() => addToCart(p)} className="w-7 h-7 rounded-lg bg-brand text-white flex items-center justify-center hover:opacity-90">
                         <Plus size={13} />
                       </button>
                     )}
@@ -335,7 +335,7 @@ export default function StoreScreen({ products, onBack, onLogin, placedOrders, o
           </>
         ) : (
           <div className="max-w-2xl">
-            <h1 className="text-xl font-bold text-[#E8E9ED] mb-4" style={{ fontFamily: displayFont }}>Order tracking</h1>
+            <h1 className="text-xl font-bold text-fg mb-4" style={{ fontFamily: displayFont }}>Order tracking</h1>
             {placedOrders.length === 0 ? (
               <EmptyState icon={PackageCheck} title="No orders yet" note="Orders you place will show up here with live status." />
             ) : (
@@ -343,12 +343,12 @@ export default function StoreScreen({ products, onBack, onLogin, placedOrders, o
                 {placedOrders.map((o) => (
                   <Card key={o.id}>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-semibold text-[#E8E9ED] text-sm">{o.id}</span>
+                      <span className="font-semibold text-fg text-sm">{o.id}</span>
                       <StatusBadge status={o.status} />
                     </div>
-                    <div className="text-xs text-[#8B8F9C] mb-2">{o.items.map((it: any) => `${it.qty}x ${it.name}`).join(", ")}</div>
+                    <div className="text-xs text-muted mb-2">{o.items.map((it: any) => `${it.qty}x ${it.name}`).join(", ")}</div>
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-[#8B8F9C]">{o.date}</span>
+                      <span className="text-muted">{o.date}</span>
                       <span className="font-bold text-indigo-400">{money(o.total)}</span>
                     </div>
                   </Card>
@@ -369,23 +369,23 @@ export default function StoreScreen({ products, onBack, onLogin, placedOrders, o
                 <div key={l.productId} className="flex items-center justify-between gap-2">
                   <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${l.product.color}`}>{l.product.name.slice(0, 1)}</div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-semibold text-[#E8E9ED] truncate">{l.product.name}</div>
-                    <div className="text-[11px] text-[#8B8F9C]">{money(l.product.price)}</div>
+                    <div className="text-xs font-semibold text-fg truncate">{l.product.name}</div>
+                    <div className="text-[11px] text-muted">{money(l.product.price)}</div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
-                    <button onClick={() => updateQty(l.productId, -1)} className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center text-[#8B8F9C]"><Minus size={11} /></button>
-                    <span className="text-xs font-semibold w-5 text-center text-[#E8E9ED]">{l.qty}</span>
+                    <button onClick={() => updateQty(l.productId, -1)} className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center text-muted"><Minus size={11} /></button>
+                    <span className="text-xs font-semibold w-5 text-center text-fg">{l.qty}</span>
                     <button
                       onClick={() => updateQty(l.productId, 1)}
                       disabled={l.qty >= availableStock(l.product)}
-                      className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center text-[#8B8F9C] disabled:opacity-30"
+                      className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center text-muted disabled:opacity-30"
                     ><Plus size={11} /></button>
                   </div>
                 </div>
               ))}
             </div>
-            <div className="flex items-center justify-between text-sm font-bold pt-3 border-t border-[rgba(255,255,255,0.06)] mb-4">
-              <span className="text-[#E8E9ED]">Total</span>
+            <div className="flex items-center justify-between text-sm font-bold pt-3 border-t border mb-4">
+              <span className="text-fg">Total</span>
               <span className="text-indigo-400">{money(total)}</span>
             </div>
             <Button className="w-full" size="lg" onClick={() => setCheckoutOpen(true)}>Checkout</Button>
@@ -403,8 +403,8 @@ export default function StoreScreen({ products, onBack, onLogin, placedOrders, o
         <Field label="Delivery address">
           <textarea value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} rows={3} className={inputCls} placeholder="House, street, area…" />
         </Field>
-        <div className="flex items-center justify-between text-sm font-bold py-3 border-y border-[rgba(255,255,255,0.06)] mb-4">
-          <span className="text-[#E8E9ED]">Order total</span>
+        <div className="flex items-center justify-between text-sm font-bold py-3 border-y border mb-4">
+          <span className="text-fg">Order total</span>
           <span className="text-indigo-400">{money(total)}</span>
         </div>
         <Button className="w-full" size="lg" onClick={handlePlaceOrder} disabled={!form.name || !form.phone || !form.address}>
@@ -418,8 +418,8 @@ export default function StoreScreen({ products, onBack, onLogin, placedOrders, o
             <div className="w-14 h-14 rounded-full bg-green-500/10 text-green-400 flex items-center justify-center mx-auto mb-3">
               <CheckCircle2 size={26} />
             </div>
-            <div className="font-bold text-[#E8E9ED] mb-1" style={{ fontFamily: displayFont }}>Thanks! Order {placed.id}</div>
-            <p className="text-xs text-[#8B8F9C] mb-5">We've received your order and will confirm it shortly.</p>
+            <div className="font-bold text-fg mb-1" style={{ fontFamily: displayFont }}>Thanks! Order {placed.id}</div>
+            <p className="text-xs text-muted mb-5">We've received your order and will confirm it shortly.</p>
             <Button className="w-full" onClick={() => { setPlaced(null); setView("tracking"); }}>Track my order</Button>
           </div>
         )}
@@ -428,8 +428,8 @@ export default function StoreScreen({ products, onBack, onLogin, placedOrders, o
       <Modal open={!!waitlistModal} onClose={() => setWaitlistModal(null)} title="Notify me when available" width={380}>
         {waitlistModal && (
           <div>
-            <p className="text-xs text-[#8B8F9C] mb-4">
-              <span className="font-semibold text-[#E8E9ED]">{waitlistModal.name}</span> is currently out of stock. Share your details and we'll message you the moment it's back — it'll be reserved for you for 48 hours.
+            <p className="text-xs text-muted mb-4">
+              <span className="font-semibold text-fg">{waitlistModal.name}</span> is currently out of stock. Share your details and we'll message you the moment it's back — it'll be reserved for you for 48 hours.
             </p>
             <Field label="Full name">
               <input value={waitlistForm.name} onChange={(e) => setWaitlistForm((f) => ({ ...f, name: e.target.value }))} className={inputCls} placeholder="Your name" />
@@ -450,10 +450,10 @@ export default function StoreScreen({ products, onBack, onLogin, placedOrders, o
             <div className="w-14 h-14 rounded-full bg-indigo-500/10 text-indigo-400 flex items-center justify-center mx-auto mb-3">
               <PackageCheck size={26} />
             </div>
-            <div className="font-bold text-[#E8E9ED] mb-1" style={{ fontFamily: displayFont }}>
+            <div className="font-bold text-fg mb-1" style={{ fontFamily: displayFont }}>
               Waitlisted for {waitlistJoined.product.name}
             </div>
-            <p className="text-xs text-[#8B8F9C] mb-1">
+            <p className="text-xs text-muted mb-1">
               {waitlistJoined.position ? `You're #${waitlistJoined.position} in line. ` : ""}
               We'll message you the moment it's back in stock — it'll be reserved for you for 48 hours.
             </p>
