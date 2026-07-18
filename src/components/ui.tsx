@@ -1,7 +1,7 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, TrendingUp, TrendingDown, LucideIcon } from "lucide-react";
-import { displayFont } from "../lib/theme";
+import { displayFont } from "../theme";
 import { STATUS_META } from "../lib/seedData";
 import {
   backdropFade,
@@ -41,11 +41,11 @@ export function Button({
   };
 
   const variants: Record<ButtonVariant, string> = {
-    primary: "bg-[#C9A44C] text-black hover:bg-[#8A712F]",
-    secondary: "bg-[#14171F] text-[#E8E9ED] border border-[rgba(255,255,255,0.06)] hover:bg-[#1B1F2A]",
+    primary: "bg-brand text-white hover:opacity-90",
+    secondary: "bg-surface text-fg border hover:bg-app",
     success: "bg-green-500 text-white hover:bg-green-600",
-    danger: "bg-[#14171F] text-red-500 border border-red-500/20",
-    ghost: "text-[#8B8F9C] hover:bg-white/5",
+    danger: "bg-surface text-danger border border-danger/20",
+    ghost: "text-muted hover:bg-fg/5",
     glassOutline: "bg-white/10 text-white border border-white/20 backdrop-blur-md",
     glassSolid: "bg-white text-black",
   };
@@ -91,7 +91,7 @@ export function Card({
           : undefined
       }
       style={style}
-      className={`bg-[#14171F] border border-[rgba(255,255,255,0.06)] rounded-xl ${noPad ? "" : "p-5"} ${className}`}
+      className={`bg-surface border rounded-xl ${noPad ? "" : "p-5"} ${className}`}
     >
       {children}
     </motion.div>
@@ -107,11 +107,11 @@ interface BadgeProps {
 
 export function Badge({ children, tone = "slate" }: BadgeProps) {
   const tones: Record<BadgeTone, string> = {
-    slate: "bg-white/5 text-[#8B8F9C]",
-    indigo: "bg-indigo-500/10 text-indigo-400",
-    green: "bg-green-500/10 text-green-400",
-    amber: "bg-yellow-500/10 text-yellow-400",
-    red: "bg-red-500/10 text-red-400",
+    slate: "bg-fg/5 text-muted",
+    indigo: "bg-brand/10 text-brand",
+    green: "bg-success/10 text-success",
+    amber: "bg-warning/10 text-warning",
+    red: "bg-danger/10 text-danger",
   };
   return (
     <span className={`text-[11px] font-semibold px-2 py-1 rounded-lg ${tones[tone]}`}>
@@ -148,10 +148,10 @@ interface StatCardProps {
 
 export function StatCard({ icon: Icon, label, value, delta = null, tone = "indigo" }: StatCardProps) {
   const tones: Record<StatTone, string> = {
-    indigo: "bg-indigo-500/10 text-indigo-400",
-    green: "bg-green-500/10 text-green-400",
-    amber: "bg-yellow-500/10 text-yellow-400",
-    red: "bg-red-500/10 text-red-400",
+    indigo: "bg-brand/10 text-brand",
+    green: "bg-success/10 text-success",
+    amber: "bg-warning/10 text-warning",
+    red: "bg-danger/10 text-danger",
   };
 
   const animatedValue = useCountUp(value);
@@ -163,16 +163,16 @@ export function StatCard({ icon: Icon, label, value, delta = null, tone = "indig
         boxShadow: "0 8px 30px rgba(0,0,0,0.3)",
         transition: { duration: 0.15 },
       }}
-      className="bg-[#14171F] border border-[rgba(255,255,255,0.06)] rounded-xl p-5 flex items-start justify-between"
+      className="bg-surface border rounded-xl p-5 flex items-start justify-between"
     >
       <div>
-        <div className="text-xs font-medium text-[#8B8F9C] mb-1.5">{label}</div>
-        <div className="text-2xl font-bold text-[#E8E9ED]" style={{ fontFamily: displayFont }}>
+        <div className="text-xs font-medium text-muted mb-1.5">{label}</div>
+        <div className="text-2xl font-bold text-fg" style={{ fontFamily: displayFont }}>
           {animatedValue}
         </div>
         {delta && (
           <div
-            className={`flex items-center gap-1 mt-2 text-xs font-semibold ${delta.startsWith("-") ? "text-red-500" : "text-green-400"}`}
+            className={`flex items-center gap-1 mt-2 text-xs font-semibold ${delta.startsWith("-") ? "text-danger" : "text-success"}`}
           >
             {delta.startsWith("-") ? <TrendingDown size={13} /> : <TrendingUp size={13} />} {delta}
           </div>
@@ -208,7 +208,7 @@ export function Drawer({ open, onClose, title, children, width = 420 }: DrawerPr
             onClick={onClose}
           />
           <motion.div
-            className="absolute top-0 right-0 bottom-0 bg-[#14171F] shadow-2xl overflow-y-auto"
+            className="absolute top-0 right-0 bottom-0 bg-surface shadow-2xl overflow-y-auto"
             style={{ width: "92%", maxWidth: width }}
             variants={drawerSlideRight}
             initial="initial"
@@ -216,13 +216,13 @@ export function Drawer({ open, onClose, title, children, width = 420 }: DrawerPr
             exit="exit"
             transition={drawerTransition}
           >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[rgba(255,255,255,0.06)] sticky top-0 bg-[#14171F] z-10">
-              <h3 className="font-bold text-[#E8E9ED]" style={{ fontFamily: displayFont }}>
+            <div className="flex items-center justify-between px-5 py-4 border-b sticky top-0 bg-surface z-10">
+              <h3 className="font-bold text-fg" style={{ fontFamily: displayFont }}>
                 {title}
               </h3>
               <button
                 onClick={onClose}
-                className="w-8 h-8 rounded-lg hover:bg-white/5 flex items-center justify-center text-gray-400"
+                className="w-8 h-8 rounded-lg hover:bg-fg/5 flex items-center justify-center text-muted"
               >
                 <X size={17} />
               </button>
@@ -258,7 +258,7 @@ export function Modal({ open, onClose, title, children, width = 460 }: ModalProp
             onClick={onClose}
           />
           <motion.div
-            className="relative bg-[#14171F] rounded-2xl shadow-2xl w-full max-h-[88vh] overflow-y-auto"
+            className="relative bg-surface rounded-2xl shadow-2xl w-full max-h-[88vh] overflow-y-auto"
             style={{ maxWidth: width }}
             variants={modalScale}
             initial="initial"
@@ -266,13 +266,13 @@ export function Modal({ open, onClose, title, children, width = 460 }: ModalProp
             exit="exit"
             transition={modalTransition}
           >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[rgba(255,255,255,0.06)] sticky top-0 bg-[#14171F] z-10">
-              <h3 className="font-bold text-[#E8E9ED]" style={{ fontFamily: displayFont }}>
+            <div className="flex items-center justify-between px-5 py-4 border-b sticky top-0 bg-surface z-10">
+              <h3 className="font-bold text-fg" style={{ fontFamily: displayFont }}>
                 {title}
               </h3>
               <button
                 onClick={onClose}
-                className="w-8 h-8 rounded-lg hover:bg-white/5 flex items-center justify-center text-gray-400"
+                className="w-8 h-8 rounded-lg hover:bg-fg/5 flex items-center justify-center text-muted"
               >
                 <X size={17} />
               </button>
@@ -293,14 +293,14 @@ interface FieldProps {
 export function Field({ label, children }: FieldProps) {
   return (
     <div className="mb-3.5">
-      <label className="text-xs font-semibold text-[#8B8F9C] mb-1.5 block">{label}</label>
+      <label className="text-xs font-semibold text-muted mb-1.5 block">{label}</label>
       {children}
     </div>
   );
 }
 
 export const inputCls =
-  "w-full px-3.5 py-2.5 rounded-xl text-sm bg-[#1B1F2A] border border-[rgba(255,255,255,0.06)] focus:outline-none focus:ring-2 focus:ring-[#C9A44C]/40 transition text-[#E8E9ED]";
+  "w-full px-3.5 py-2.5 rounded-xl text-sm bg-app border focus:outline-none focus:ring-2 focus:ring-brand/40 transition text-fg";
 
 interface EmptyStateProps {
   icon: LucideIcon;
@@ -321,12 +321,12 @@ export function EmptyState({ icon: Icon, title, note }: EmptyStateProps) {
           y: [0, -6, 0],
           transition: { duration: 2, repeat: Infinity, ease: "easeInOut" },
         }}
-        className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-3 text-gray-400"
+        className="w-12 h-12 rounded-2xl bg-fg/5 flex items-center justify-center mx-auto mb-3 text-muted"
       >
         <Icon size={20} />
       </motion.div>
-      <div className="text-sm font-semibold text-[#E8E9ED]">{title}</div>
-      {note && <div className="text-xs text-[#8B8F9C] mt-1">{note}</div>}
+      <div className="text-sm font-semibold text-fg">{title}</div>
+      {note && <div className="text-xs text-muted mt-1">{note}</div>}
     </motion.div>
   );
 }
