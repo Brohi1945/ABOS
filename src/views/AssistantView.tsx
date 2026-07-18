@@ -11,6 +11,9 @@ interface Message {
   text: string;
 }
 
+// Change the assistant's name in exactly one place.
+const ASSISTANT_NAME = "ABI";
+
 interface AssistantViewProps {
   orders: any[];
   products: any[];
@@ -41,7 +44,7 @@ export default function AssistantView({
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "bot",
-      text: "Salam Sir/Ma'am — main AB OS ka chief assistant hoon. Accounting, inventory, sales analytics, customers aur marketing — poore business ka live data mere paas hai, aur main aapki taraf se actions bhi le sakta hoon. Poochiye kuch bhi, ya seedha bolein \"business health report do\".",
+      text: `Salam! Main ${ASSISTANT_NAME} hoon. Aapke business ka live data mere paas hai — kuch bhi poochiye.`,
     },
   ]);
   const [input, setInput] = useState("");
@@ -128,9 +131,11 @@ export default function AssistantView({
       campaignPerformance,
     };
 
-    const systemPrompt = `You are the AI chief-of-staff built into AB OS — the store owner's entire admin dashboard. You operate as FOUR senior roles combined into one assistant: Chief Accountant (revenue, cost, profit, margins), Chief Operations Manager (orders, inventory, stock health), Chief Data Analyst (best sellers, dead stock, trends, customer segments), and Chief Marketing Officer (campaign performance). Think and answer the way an elite, highly competent human executive team would — fast, precise, numbers-first, and proactive. You are not a generic FAQ bot: you have full live read access to every part of the business (given as JSON below) and the ability to execute real actions.
+    const systemPrompt = `Your name is ${ASSISTANT_NAME}, the AI chief-of-staff built into AB OS — the store owner's entire admin dashboard. Introduce yourself by name only once, at the very start of a conversation, never again mid-conversation. You operate as FOUR senior roles combined into one assistant: Chief Accountant (revenue, cost, profit, margins), Chief Operations Manager (orders, inventory, stock health), Chief Data Analyst (best sellers, dead stock, trends, customer segments), and Chief Marketing Officer (campaign performance). Think and answer the way an elite, highly competent human executive team would — fast, precise, numbers-first, and proactive. You are not a generic FAQ bot: you have full live read access to every part of the business (given as JSON below) and the ability to execute real actions.
 
-Behave like Jarvis for this business: when asked an open-ended question ("business health report do", "aaj kya priority honi chahiye"), synthesize across accounting + inventory + customers + marketing yourself and give a short, prioritized, decision-ready answer — don't just dump raw numbers, interpret them (e.g. flag a margin that's shrinking, a customer at churn risk, a campaign underperforming, a product that's dead stock tying up capital, or a pending order that needs attention). Always ground every number in the JSON below — never invent figures.
+Reason like a senior analyst before you answer: silently work out (a) which numbers in the JSON below actually answer the question, (b) what the single most important insight or risk is, and (c) what action the owner should take next — then write ONLY the final, distilled answer in "reply". Never show your working, never say "let me check" or "calculating" — just deliver the finished, confident answer as if you already knew it instantly.
+
+Behave like Jarvis for this business: when asked an open-ended question ("business health report do", "aaj kya priority honi chahiye"), synthesize across accounting + inventory + customers + marketing yourself and give a short, prioritized, decision-ready answer — don't just dump raw numbers, interpret them (e.g. flag a margin that's shrinking, a customer at churn risk, a campaign underperforming, a product that's dead stock tying up capital, or a pending order that needs attention). Always ground every number in the JSON below — never invent figures. When relevant, proactively surface a second-order insight the owner didn't explicitly ask for but would want to know.
 
 You can perform these real management actions when the owner asks. Collect any missing required field by asking ONE question at a time, then emit the action once you have everything needed:
 - add_product: add a new item to inventory
@@ -188,8 +193,15 @@ ${JSON.stringify(storeContext)}`;
           onAddCampaign(action);
         }
       }
-    } catch (err) {
-      setMessages((m) => [...m, { role: "bot", text: "Maaf kijiye, is waqt assistant tak nahi pohanch saka — thodi dair mein dobara koshish karein." }]);
+    } catch (err: any) {
+      const status = err?.status;
+      const text =
+        status === 429
+          ? "Abhi thora zyada traffic hai is liye jawab dene mein dair lag rahi hai — 30 second baad dobara try karein."
+          : status === 500 && /GROQ_API_KEY/i.test(err?.detail?.error || err?.message || "")
+          ? "AI service configure nahi hai (API key missing) — admin ko batayein."
+          : "Maaf kijiye, is waqt assistant tak nahi pohanch saka — thodi dair mein dobara koshish karein.";
+      setMessages((m) => [...m, { role: "bot", text }]);
     } finally {
       setLoading(false);
       sendingRef.current = false;
