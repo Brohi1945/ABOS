@@ -148,6 +148,32 @@ export function Topbar({ title, onMenuClick, notifCount, onNotifClick, notifOpen
     prevCount.current = notifCount;
   }, [notifCount]);
 
+  // 🔧 FIX: notification dropdown ab bahar click karne par ya scroll karne
+  // par khud band ho jata hai — pehle sirf bell dobara dabane se band hota tha.
+  const notifRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!notifOpen) return;
+
+    function handleOutside(e: MouseEvent | TouchEvent) {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        onNotifClick();
+      }
+    }
+    function handleScroll() {
+      onNotifClick();
+    }
+
+    document.addEventListener("mousedown", handleOutside);
+    document.addEventListener("touchstart", handleOutside);
+    window.addEventListener("scroll", handleScroll, true);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("touchstart", handleOutside);
+      window.removeEventListener("scroll", handleScroll, true);
+    };
+  }, [notifOpen, onNotifClick]);
+
   return (
     <div className="sticky top-0 z-30 bg-app/90 backdrop-blur-md border-b">
       <div className="flex items-center gap-3 px-4 sm:px-6 py-3.5">
@@ -196,7 +222,7 @@ export function Topbar({ title, onMenuClick, notifCount, onNotifClick, notifOpen
 
         <ThemeSwitcher />
 
-        <div className="relative">
+        <div className="relative" ref={notifRef}>
           <motion.button
             onClick={onNotifClick}
             animate={shake ? { rotate: [0, -14, 12, -8, 5, 0] } : { rotate: 0 }}
@@ -260,3 +286,8 @@ export function Topbar({ title, onMenuClick, notifCount, onNotifClick, notifOpen
     </div>
   );
 }
+      
+    
+
+        
+
