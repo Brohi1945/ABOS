@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { ShoppingCart, Download, ChevronRight, Search, X } from "lucide-react";
+import { ShoppingCart, Download, ChevronRight, Search, X, CreditCard, Copy, MessageCircle } from "lucide-react";
 import { displayFont } from "../theme";
 import { money, Order, matchesQuery, isWithinDateRange, DateRange, DEFAULT_DATE_RANGE } from "../lib/utils";
 import { STATUS_META } from "../lib/seedData";
-import { Card, Badge, StatusBadge, Button, Drawer, EmptyState, inputCls } from "../components/ui";
+import { Card, Badge, StatusBadge, PaymentStatusBadge, Button, Drawer, EmptyState, inputCls } from "../components/ui";
 import { SkeletonTable } from "../components/Skeleton";
 import { DateRangeFilter } from "../components/DateRangeFilter";
+import { toastSuccess, toastError } from "../lib/toast";
 
 interface OrdersViewProps {
   orders: Order[];
@@ -19,10 +20,92 @@ export default function OrdersView({ orders, onUpdateStatus }: OrdersViewProps) 
   const [selected, setSelected] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  // Safepay "Send Payment Link" flow — order select hote hi reset ho jata
+  // hai taake purane order ka generated link naye order par na dikhe.
+  const [linkLoading, setLinkLoading] = useState(false);
+  const [checkoutLink, setCheckoutLink] = useState<string | null>(null);
+  const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
+
+  useEffect(() => {
+    setCheckoutLink(null);
+    setLinkLoading(false);
+    setSendingWhatsApp(false);
+  }, [selected?.id]);
+
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 600);
     return () => clearTimeout(timer);
   }, []);
+
+  // Step 1: /api/create-payment se checkout link generate karo (server
+  // order ka asal total DB se khud nikalta hai — yahan se sirf orderId
+  // jata hai, koi amount client se nahi bheja jata).
+  const handleGetPaymentLink = async () => {
+    if (!selected) return;
+    setLinkLoading(true);
+    try {
+      const res = await fetch("/api/create-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: selected.id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.checkoutUrl) {
+        toastError(data.error || "Payment link nahi ban saka");
+        return;
+      }
+      setCheckoutLink(data.checkoutUrl);
+      toastSuccess("Payment link ban gaya");
+    } catch (err) {
+      toastError("Payment link generate karte waqt error aaya — dobara try karein");
+    } finally {
+      setLinkLoading(false);
+    }
+  };
+
+  // Step 2a: link clipboard par copy karo — admin ko khud kahin bhi
+  // (SMS, chat, dukan ke counter par) bhejne ki azaadi.
+  const handleCopyLink = async () => {
+    if (!checkoutLink) return;
+    try {
+      await navigator.clipboard.writeText(checkoutLink);
+      toastSuccess("Link copy ho gaya");
+    } catch {
+      toastError("Link copy nahi ho saka — manually select karein");
+    }
+  };
+
+  // Step 2b: link seedha customer ke WhatsApp par bhej do — existing
+  // /api/whatsapp (Meta Cloud API sender) reuse karta hai, koi naya
+  // backend endpoint nahi banana pada.
+  const handleSendWhatsApp = async () => {
+    if (!checkoutLink || !selected) return;
+    if (!selected.phone) {
+      toastError("Is order par customer ka phone number nahi hai");
+      return;
+    }
+    setSendingWhatsApp(true);
+    try {
+      const res = await fetch("/api/whatsapp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: selected.phone,
+          message: `Aapke order ${selected.id} (${money(selected.total)}) ka payment link:\n${checkoutLink}\n\n(Ya Cash on Delivery bhi chalega — koi payment zaroori nahi.)`,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toastError(data.error || "WhatsApp par link nahi bhej saka");
+        return;
+      }
+      toastSuccess("Payment link WhatsApp par bhej diya");
+    } catch (err) {
+      toastError("WhatsApp send karte waqt error aaya — dobara try karein");
+    } finally {
+      setSendingWhatsApp(false);
+    }
+  };
 
   const filtered = orders
     .filter((o) => (filter === "all" ? true : o.status === filter))
@@ -174,6 +257,44 @@ export default function OrdersView({ orders, onUpdateStatus }: OrdersViewProps) 
               <span className="text-fg">Total</span>
               <span className="text-indigo-400">{money(selected.total)}</span>
             </div>
+
+            {selected.status !== "cancelled" && (
+              <div className="pt-1">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-xs font-semibold text-muted">Payment</div>
+                  <PaymentStatusBadge status={selected.payment_status} />
+                </div>
+                {selected.payment_status === "paid" ? (
+                  <div className="text-xs text-muted">Payment already received — koi link zaroorat nahi.</div>
+                ) : !checkoutLink ? (
+                  <Button variant="secondary" size="sm" icon={CreditCard} onClick={handleGetPaymentLink} disabled={linkLoading}>
+                    {linkLoading ? "Generating…" : "Get Payment Link"}
+                  </Button>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="text-xs bg-white/5 rounded-lg px-3 py-2 break-all text-muted">{checkoutLink}</div>
+                    <div className="flex gap-2 flex-wrap">
+                      <Button variant="secondary" size="sm" icon={Copy} onClick={handleCopyLink}>
+                        Copy Link
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        icon={MessageCircle}
+                        onClick={handleSendWhatsApp}
+                        disabled={sendingWhatsApp || !selected.phone}
+                      >
+                        {sendingWhatsApp ? "Sending…" : "Send via WhatsApp"}
+                      </Button>
+                    </div>
+                    {!selected.phone && (
+                      <div className="text-[11px] text-muted">Is order par phone number nahi hai — link sirf copy ho sakta hai.</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div>
               <div className="text-xs font-semibold text-muted mb-2">Update status</div>
               <div className="grid grid-cols-2 gap-2">
