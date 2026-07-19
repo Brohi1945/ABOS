@@ -166,17 +166,18 @@ export default function DashboardView({ orders, products, customers, onGoTo }: D
         initial="initial"
         animate="animate"
       >
-        <motion.div variants={fadeSlideUp}>
+<motion.div variants={fadeSlideUp}>
           <StatCard
             icon={ShoppingCart}
             label="Orders"
             value={orders.length}
             delta={ordersToday > 0 ? `+${ordersToday} today` : null}
             tone="green"
+            onClick={() => onGoTo("orders")}
           />
         </motion.div>
         <motion.div variants={fadeSlideUp}>
-          <StatCard icon={Users} label="Customers" value={customers.length} tone="indigo" />
+          <StatCard icon={Users} label="Customers" value={customers.length} tone="indigo" onClick={() => onGoTo("customers")} />
         </motion.div>
         <motion.div variants={fadeSlideUp} className="col-span-2 lg:col-span-1">
           <StatCard
@@ -185,10 +186,9 @@ export default function DashboardView({ orders, products, customers, onGoTo }: D
             value={lowStock.length}
             delta={lowStock.length > 0 ? "Needs attention" : "All good"}
             tone="amber"
+            onClick={() => onGoTo("inventory")}
           />
         </motion.div>
-      </motion.div>
-
       {/* ===== Chart + Live Activity timeline ===== */}
       <div className="grid lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-2">
