@@ -145,8 +145,16 @@ interface StatCardProps {
   delta?: string | null;
   tone?: StatTone;
 }
+interface StatCardProps {
+  icon: LucideIcon;
+  label: string;
+  value: string | number;
+  delta?: string | null;
+  tone?: StatTone;
+  onClick?: () => void;
+}
 
-export function StatCard({ icon: Icon, label, value, delta = null, tone = "indigo" }: StatCardProps) {
+export function StatCard({ icon: Icon, label, value, delta = null, tone = "indigo", onClick }: StatCardProps) {
   const tones: Record<StatTone, string> = {
     indigo: "bg-brand/10 text-brand",
     green: "bg-success/10 text-success",
@@ -158,12 +166,14 @@ export function StatCard({ icon: Icon, label, value, delta = null, tone = "indig
 
   return (
     <motion.div
+      onClick={onClick}
       whileHover={{
         scale: 1.02,
         boxShadow: "0 8px 30px rgba(0,0,0,0.3)",
         transition: { duration: 0.15 },
       }}
-      className="bg-surface border rounded-xl p-5 flex items-start justify-between"
+      whileTap={onClick ? { scale: 0.98 } : undefined}
+      className={`bg-surface border rounded-xl p-5 flex items-start justify-between ${onClick ? "cursor-pointer" : ""}`}
     >
       <div>
         <div className="text-xs font-medium text-muted mb-1.5">{label}</div>
@@ -184,6 +194,7 @@ export function StatCard({ icon: Icon, label, value, delta = null, tone = "indig
     </motion.div>
   );
 }
+
 
 interface DrawerProps {
   open: boolean;
