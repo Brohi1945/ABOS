@@ -9,6 +9,11 @@ export interface Order {
   status: "pending" | "confirmed" | "delivered" | "cancelled";
   date: string;
   channel?: string;
+  // Safepay integration (see api/create-payment.ts, api/safepay-webhook.ts) —
+  // payment_status default hai "unpaid" jab tak koi payment link generate/pay
+  // nahi hoti; webhook confirm hone par "paid"/"failed" set karta hai.
+  payment_status?: "unpaid" | "pending" | "paid" | "failed";
+  safepay_tracker?: string | null;
 }
 
 export interface Product {
