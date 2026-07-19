@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { ArrowLeft, Lock, Mail as MailIcon } from "lucide-react";
 import { displayFont, bodyFont } from "../theme";
 import { Button, Field, inputCls } from "../components/ui";
+import { supabase } from "../supabaseClient";
 
 interface LoginScreenProps {
   onBack: () => void;
@@ -12,6 +13,36 @@ export default function LoginScreen({ onBack, onLoginAs }: LoginScreenProps) {
   const [role, setRole] = useState("admin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  // 🔒 SECURITY FIX: admin login ab real Supabase Auth se verify hota hai.
+  // Customer role ke liye koi password check nahi (store browsing public
+  // hai), is liye woh pehle jaisa hi seedha navigate karta hai.
+  const handleSubmit = async () => {
+    setErrorMsg("");
+
+    if (role === "customer") {
+      onLoginAs("customer");
+      return;
+    }
+
+    if (!supabase) {
+      setErrorMsg("Supabase connect nahi hai — .env variables check karein.");
+      return;
+    }
+
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(false);
+
+    if (error) {
+      setErrorMsg("Email ya password ghalat hai.");
+      return;
+    }
+
+    onLoginAs("admin");
+  };
 
   return (
     <div className="min-h-screen w-full relative overflow-hidden bg-app flex items-center justify-center p-5" style={{ fontFamily: bodyFont }}>
@@ -35,7 +66,7 @@ export default function LoginScreen({ onBack, onLoginAs }: LoginScreenProps) {
             {[{ key: "admin", label: "Admin" }, { key: "customer", label: "Customer" }].map((r) => (
               <button
                 key={r.key}
-                onClick={() => setRole(r.key)}
+                onClick={() => { setRole(r.key); setErrorMsg(""); }}
                 className={`flex-1 text-xs font-semibold py-2 rounded-lg transition ${
                   role === r.key ? "bg-brand text-white" : "text-muted"
                 }`}
@@ -45,25 +76,29 @@ export default function LoginScreen({ onBack, onLoginAs }: LoginScreenProps) {
             ))}
           </div>
 
-          <Field label="Email address">
-            <div className="relative">
-              <MailIcon size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-              <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="you@business.com" className={`${inputCls} pl-9`} />
-            </div>
-          </Field>
+          {role === "admin" && (
+            <>
+              <Field label="Email address">
+                <div className="relative">
+                  <MailIcon size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+                  <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="you@business.com" className={`${inputCls} pl-9`} />
+                </div>
+              </Field>
 
-          <Field label="Password">
-            <div className="relative">
-              <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-              <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" placeholder="••••••••" className={`${inputCls} pl-9`} />
-            </div>
-          </Field>
+              <Field label="Password">
+                <div className="relative">
+                  <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+                  <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" placeholder="••••••••" className={`${inputCls} pl-9`} />
+                </div>
+              </Field>
 
-          <Button className="w-full mt-2" size="lg" onClick={() => onLoginAs(role)}>
-            Sign in as {role === "admin" ? "Admin" : "Customer"}
+              {errorMsg && <p className="text-xs text-red-500 mb-3">{errorMsg}</p>}
+            </>
+          )}
+
+          <Button className="w-full mt-2" size="lg" onClick={handleSubmit} disabled={loading}>
+            {loading ? "Sign in ho raha hai..." : `Sign in as ${role === "admin" ? "Admin" : "Customer"}`}
           </Button>
-
-          <p className="text-[11px] text-center text-muted mt-4">Demo prototype — any email &amp; password works.</p>
         </div>
       </div>
     </div>
