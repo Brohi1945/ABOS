@@ -6,8 +6,20 @@
 // ============================================================
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://akjugxzvexcpslhzvuhz.supabase.co";
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFranVneHp2ZXhjcHNsaHp2dWh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwMDcwNDcsImV4cCI6MjA5OTU4MzA0N30.SYWWFeDA9eHawvvJu3qBFZxpJvAThGAKTrPagy2Thuo";
+// 🔒 SECURITY FIX: hardcoded fallback URL/key hata di gayi hai.
+// Ab yeh sirf Vercel/.env environment variables se aayenge — agar missing
+// hon to app "supabase = null" state mein chali jayegi (crash nahi hogi,
+// bas data fetch/save fail hoga), taake koi live key kabhi bundle mein
+// leak na ho.
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error(
+    "⚠️ VITE_SUPABASE_URL ya VITE_SUPABASE_ANON_KEY missing hai. " +
+    ".env file (local) ya Vercel → Settings → Environment Variables (production) mein set karein."
+  );
+}
 
 export const supabase =
   supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
