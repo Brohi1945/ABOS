@@ -31,6 +31,11 @@ interface UseVoiceInputOptions {
   // Urdu (ur-PK) or Hindi (hi-IN) acoustic models depending on device support;
   // "ur-PK" is tried first, caller can override.
   lang?: string;
+  // When true, recognition is temporarily stopped without losing "keep
+  // listening" intent — meant to be set to the caller's isSpeaking flag
+  // so the mic doesn't pick up the AI's own TTS reply and misfire on it.
+  // Automatically resumes hands-free listening once this goes back to false.
+  pause?: boolean;
 }
 
 interface UseVoiceInputReturn {
@@ -46,6 +51,7 @@ export function useVoiceInput({
   onResult,
   onError,
   lang = "ur-PK",
+  pause = false,
 }: UseVoiceInputOptions): UseVoiceInputReturn {
   const [isSupported, setIsSupported] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -58,6 +64,25 @@ export function useVoiceInput({
   const onErrorRef = useRef(onError);
   useEffect(() => { onResultRef.current = onResult; }, [onResult]);
   useEffect(() => { onErrorRef.current = onError; }, [onError]);
+
+  // BUG FIX: "voice minimize hone ke baad band ho jata hai, khula rehna
+  // chahiye taake baat karte karte commands milte rahein" — recognition.
+  // continuous=false means the browser auto-stops listening the instant
+  // it detects the user finished one sentence (onend fires). Previously
+  // that was the end of it — the mic icon flipped back off and the admin
+  // had to tap it again for every single command, which is especially
+  // awkward once minimized (no full UI to reach for). This ref tracks
+  // *intent*: true from the moment the mic is tapped on until the admin
+  // (or an error) explicitly tapps it off again. Whenever recognition
+  // ends on its own (not because of an explicit stopListening() call),
+  // and intent is still "on", we silently restart it — so one tap keeps
+  // listening across as many back-to-back commands as needed.
+  const keepListeningRef = useRef(false);
+  const restartTimerRef = useRef<number | null>(null);
+  // True while temporarily paused (e.g. AI is speaking) — blocks the
+  // onend auto-restart without clearing "keep listening" intent, so
+  // listening resumes hands-free once unpaused instead of needing a tap.
+  const pausedRef = useRef(false);
 
   useEffect(() => {
     const SpeechRecognition =
@@ -99,6 +124,13 @@ export function useVoiceInput({
     recognition.onerror = (event: any) => {
       setIsListening(false);
       setInterimTranscript("");
+      // "no-speech" (silence timeout) shouldn't break hands-free mode —
+      // it just means restart and keep waiting. Genuine problems
+      // (permission denied, no mic, network) should actually stop.
+      if (event.error === "no-speech" && keepListeningRef.current) {
+        return; // onend will fire right after this and handle the restart
+      }
+      keepListeningRef.current = false;
       const messages: Record<string, string> = {
         "not-allowed": "Microphone permission denied hai — browser settings mein allow karein.",
         "no-speech": "Kuch sunai nahi diya — dobara koshish karein.",
@@ -110,11 +142,26 @@ export function useVoiceInput({
     recognition.onend = () => {
       setIsListening(false);
       setInterimTranscript("");
+      if (keepListeningRef.current && !pausedRef.current) {
+        // Small delay before restarting — calling start() immediately
+        // inside onend throws on some Android Chrome builds.
+        if (restartTimerRef.current) window.clearTimeout(restartTimerRef.current);
+        restartTimerRef.current = window.setTimeout(() => {
+          if (!keepListeningRef.current || pausedRef.current) return;
+          try {
+            recognition.start();
+          } catch {
+            /* already running — ignore */
+          }
+        }, 300);
+      }
     };
 
     recognitionRef.current = recognition;
 
     return () => {
+      keepListeningRef.current = false;
+      if (restartTimerRef.current) { window.clearTimeout(restartTimerRef.current); restartTimerRef.current = null; }
       try {
         recognition.stop();
       } catch {
@@ -127,7 +174,31 @@ export function useVoiceInput({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lang]);
 
+  // Mute the mic while the AI is speaking (caller passes its isSpeaking
+  // flag in as `pause`) so it doesn't hear its own TTS reply through the
+  // device speaker and misfire on it as a new command. Resumes hands-free
+  // listening automatically once speaking stops, if it was on before.
+  useEffect(() => {
+    pausedRef.current = pause;
+    if (!recognitionRef.current) return;
+    if (pause) {
+      if (restartTimerRef.current) { window.clearTimeout(restartTimerRef.current); restartTimerRef.current = null; }
+      try {
+        recognitionRef.current.stop();
+      } catch {
+        /* already stopped */
+      }
+    } else if (keepListeningRef.current) {
+      try {
+        recognitionRef.current.start();
+      } catch {
+        /* already running — ignore */
+      }
+    }
+  }, [pause]);
+
   const startListening = useCallback(() => {
+    keepListeningRef.current = true;
     if (!recognitionRef.current || isListening) return;
     try {
       recognitionRef.current.start();
@@ -137,6 +208,8 @@ export function useVoiceInput({
   }, [isListening]);
 
   const stopListening = useCallback(() => {
+    keepListeningRef.current = false;
+    if (restartTimerRef.current) { window.clearTimeout(restartTimerRef.current); restartTimerRef.current = null; }
     if (!recognitionRef.current) return;
     try {
       recognitionRef.current.stop();
