@@ -6,6 +6,8 @@
 import { supabase } from "./_lib/supabaseServer.js";
 import { sendWhatsAppText } from "./_lib/waClient.js";
 import { callGroq, parseReply } from "./_lib/groqClient.js";
+import { isValidPakPhone } from "./_lib/validators.js";
+import { isSafepayReady, createSafepaySession, buildSafepayCheckoutUrl } from "./_lib/safepayClient.js";
 
 const CATEGORIES = ["Groceries", "Beverages", "Snacks", "Household", "Personal Care"];
 
@@ -262,13 +264,20 @@ ${JSON.stringify(storeContext)}`;
 
 async function dispatchCustomerAction(action, products, senderName, senderPhone) {
   if (action.type === "place_order" && Array.isArray(action.items) && action.items.length) {
+    // 🔒 Ghalat/fake number par order create nahi hota — bina isay
+    // check kiye order asal customer tak trace nahi ho sakega.
+    if (!isValidPakPhone(senderPhone)) {
+      console.warn("dispatchCustomerAction: invalid phone, order skipped", senderPhone);
+      return { rejected: true, reason: "invalid_phone" };
+    }
+
     const lines = action.items
       .map(it => {
         const product = products.find(p => p.id === it.productId);
         return product ? { productId: product.id, name: product.name, qty: Number(it.qty) || 1, price: product.price } : null;
       })
       .filter(Boolean);
-    if (!lines.length) return;
+    if (!lines.length) return { rejected: true, reason: "no_valid_items" };
 
     const total = lines.reduce((s, l) => s + l.price * l.qty, 0);
     const order = {
@@ -290,6 +299,27 @@ async function dispatchCustomerAction(action, products, senderName, senderPhone)
         await supabase.from("products").update({ stock: Math.max(0, product.stock - l.qty) }).eq("id", product.id);
       }
     }
+
+    // Order save hote hi Safepay checkout link generate karke customer
+    // ko ek alag WhatsApp message mein bhej dete hain (best-effort —
+    // COD chahne wala customer isay simply ignore kar sakta hai).
+    if (isSafepayReady()) {
+      try {
+        const { trackerToken, authToken } = await createSafepaySession(order.id, order.total);
+        const checkoutUrl = buildSafepayCheckoutUrl({
+          trackerToken,
+          authToken,
+          redirectUrl: `https://${process.env.PUBLIC_SITE_HOST || "abos-dashboard.vercel.app"}/?payment=success&order_id=${order.id}`,
+          cancelUrl: `https://${process.env.PUBLIC_SITE_HOST || "abos-dashboard.vercel.app"}/?payment=cancelled&order_id=${order.id}`,
+        });
+        await supabase.from("orders").update({ safepay_tracker: trackerToken }).eq("id", order.id);
+        return { rejected: false, order, checkoutUrl };
+      } catch (payErr) {
+        console.error("dispatchCustomerAction: Safepay session error", payErr.message);
+      }
+    }
+
+    return { rejected: false, order };
   } else if (action.type === "join_waitlist" && action.productId) {
     await supabase.from("waitlist").insert({
       product_id: action.productId,
@@ -300,6 +330,7 @@ async function dispatchCustomerAction(action, products, senderName, senderPhone)
       channel: "WhatsApp",
     });
   }
+  return { rejected: false };
 }
 
 // ============================================================
@@ -443,11 +474,12 @@ export default async function handler(req, res) {
 
     const { reply, action } = parseReply(raw);
 
+    let dispatchResult = null;
     if (action) {
       if (isAdmin) {
         await dispatchAdminAction(action, products);
       } else {
-        await dispatchCustomerAction(action, products, senderName, senderPhone);
+        dispatchResult = await dispatchCustomerAction(action, products, senderName, senderPhone);
       }
     }
 
@@ -459,6 +491,15 @@ export default async function handler(req, res) {
 
     // 🔥 FIX: Always send reply to customer
     await sendWhatsAppText(senderPhone, reply);
+
+    // Order place hui aur payment link ban gaya to yeh ek alag message
+    // mein bhej dete hain — customer taake reply se separate dikhe.
+    if (dispatchResult?.checkoutUrl) {
+      await sendWhatsAppText(
+        senderPhone,
+        `💳 Payment ke liye yeh link istemal karein:\n${dispatchResult.checkoutUrl}\n\n(Ya Cash on Delivery bhi chalega — koi payment zaroori nahi.)`
+      );
+    }
 
     return res.status(200).json({ ok: true });
     
