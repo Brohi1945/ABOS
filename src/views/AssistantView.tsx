@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
+import { Send, Loader2, Mic, MicOff, Volume2, VolumeX, Bot, ChevronDown } from "lucide-react";
 import { displayFont } from "../theme";
 import { CATEGORIES } from "../lib/seedData";
 import { callClaude, parseAssistantReply, TypingDots } from "../lib/aiHelpers";
@@ -34,6 +34,14 @@ interface AssistantViewProps {
   // the sidebar section. If not passed, navigation commands are simply
   // not intercepted and fall through to the LLM like a normal question.
   onSectionChange?: (key: string) => void;
+  // AssistantView is now a persistent overlay (mounted once in AdminApp,
+  // never torn down just because the admin switches sections) instead of
+  // a routed page. That's what lets voice input/output survive
+  // navigation instead of getting cut off mid-sentence. "mode" controls
+  // whether it's shown full-screen or as a small floating bubble.
+  mode?: "full" | "minimized";
+  onMinimize?: () => void;
+  onExpand?: () => void;
 }
 
 export default function AssistantView({
@@ -49,6 +57,9 @@ export default function AssistantView({
   onAddCampaign,
   onCreateOrder,
   onSectionChange,
+  mode = "full",
+  onMinimize,
+  onExpand,
 }: AssistantViewProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -140,11 +151,11 @@ export default function AssistantView({
         setInput("");
         const confirmText = `${nav.label} khol raha hoon…`;
         addBotMessage(confirmText);
-        // Small delay so the confirmation is actually visible/audible
-        // before this whole view unmounts (switching sections unmounts
-        // AssistantView, since it's only rendered for the "assistant"
-        // section).
-        window.setTimeout(() => onSectionChange(nav.key), 700);
+        // AssistantView is now a persistent overlay (see AdminApp), so it
+        // no longer unmounts when the section changes — speech keeps
+        // playing to the end even after we minimize and switch sections.
+        onMinimize?.();
+        window.setTimeout(() => onSectionChange(nav.key), 400);
         return;
       }
     }
@@ -299,32 +310,70 @@ ${JSON.stringify(storeContext)}`;
     }
   };
 
+  // ---- MINIMIZED: small floating bubble, shown on top of whatever page
+  // the admin is actually looking at. Voice input/output hooks above stay
+  // alive the whole time (this component never unmounts anymore — see
+  // AdminApp), so a reply that's mid-sentence keeps speaking right
+  // through a section switch instead of being cut off. ----
+  if (mode === "minimized") {
+    return (
+      <button
+        type="button"
+        onClick={() => onExpand?.()}
+        title={`${ASSISTANT_NAME} — tap to open`}
+        className="fixed bottom-5 right-5 z-[60] flex items-center gap-2 pl-3 pr-4 py-2.5 rounded-full bg-brand text-white shadow-lg hover:opacity-90 transition"
+      >
+        <span className="relative flex items-center justify-center w-6 h-6 rounded-full bg-white/20 shrink-0">
+          <Bot size={14} />
+          {(isListening || isSpeaking) && (
+            <span className="absolute inset-0 rounded-full bg-white/40 animate-ping" />
+          )}
+        </span>
+        <span className="text-xs font-medium">
+          {isListening ? "Sun raha hoon…" : isSpeaking ? "Bol raha hoon…" : ASSISTANT_NAME}
+        </span>
+      </button>
+    );
+  }
+
+  // ---- FULL: the complete chat panel, rendered as a fixed overlay so it
+  // sits above the current page instead of being a routed page itself. ----
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="fixed inset-0 z-[60] bg-app flex flex-col p-4 sm:p-6">
+      <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold text-fg" style={{ fontFamily: displayFont }}>AI Assistant</h2>
-        {ttsSupported && (
+        <div className="flex items-center gap-2">
+          {ttsSupported && (
+            <button
+              type="button"
+              onClick={() => {
+                // Speaking directly inside this click (a real user gesture)
+                // "unlocks" audio on Android Chrome, which otherwise blocks
+                // speechSynthesis calls that happen later after an async
+                // fetch response.
+                if (!voiceEnabled) speakUnlocked("Voice on hai, ab main jawab bol kar dunga.");
+                toggleVoiceEnabled();
+              }}
+              title={voiceEnabled ? "Voice replies on — tap to mute" : "Voice replies off — tap to enable"}
+              className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition ${
+                voiceEnabled ? "bg-brand/20 text-brand border-brand/30" : "bg-app text-muted"
+              }`}
+            >
+              {voiceEnabled ? <Volume2 size={13} /> : <VolumeX size={13} />}
+              {voiceEnabled ? "Voice on" : "Voice off"}
+            </button>
+          )}
           <button
             type="button"
-            onClick={() => {
-              // Speaking directly inside this click (a real user gesture)
-              // "unlocks" audio on Android Chrome, which otherwise blocks
-              // speechSynthesis calls that happen later after an async
-              // fetch response.
-              if (!voiceEnabled) speakUnlocked("Voice on hai, ab main jawab bol kar dunga.");
-              toggleVoiceEnabled();
-            }}
-            title={voiceEnabled ? "Voice replies on — tap to mute" : "Voice replies off — tap to enable"}
-            className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition ${
-              voiceEnabled ? "bg-brand/20 text-brand border-brand/30" : "bg-app text-muted"
-            }`}
+            onClick={() => onMinimize?.()}
+            title="Minimize"
+            className="w-8 h-8 rounded-full flex items-center justify-center bg-app border text-muted hover:border-brand shrink-0"
           >
-            {voiceEnabled ? <Volume2 size={13} /> : <VolumeX size={13} />}
-            {voiceEnabled ? "Voice on" : "Voice off"}
+            <ChevronDown size={16} />
           </button>
-        )}
+        </div>
       </div>
-      <Card noPad className="flex flex-col" style={{ height: "80vh" }}>
+      <Card noPad className="flex-1 flex flex-col min-h-0">
         <div className="flex-1 overflow-y-auto p-5 space-y-3">
           {messages.map((m, i) => (
             <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
