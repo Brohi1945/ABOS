@@ -26,7 +26,7 @@ export function isSafepayReady() {
 }
 
 function getClient() {
-  return Safepay(secretKey, {
+  return new Safepay(secretKey, {
     authType: "secret",
     host: env === "production" ? LIVE_HOST : SANDBOX_HOST,
   });
