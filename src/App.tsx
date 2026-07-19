@@ -6,6 +6,7 @@ import { fadeSlideUp } from "./animations/variants";
 import { seedProducts, seedOrders, seedCustomers } from "./lib/seedData";
 import { genId } from "./lib/utils";
 import { notifyNewOrder, notifyLowStock } from "./lib/notify";
+import { toastSuccess, toastError } from "./lib/toast";
 import {
   fetchProducts,
   fetchOrders,
@@ -88,6 +89,31 @@ export default function BusinessAutomationSystem() {
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
+  // 💳 Safepay hosted checkout se wapas is site par redirect hone par
+  // (redirectUrl/cancelUrl — see api/place-order.ts, api/create-payment.ts)
+  // customer ko ek chhota acknowledgement dikhate hain. Yeh SIRF cosmetic
+  // hai — asal payment_status hamesha api/safepay-webhook.ts (server-side,
+  // Safepay se dobara verify karke) update karta hai, is URL query param
+  // par kabhi bharosa nahi karte.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paymentResult = params.get("payment");
+    const orderId = params.get("order_id");
+    if (!paymentResult || !orderId) return;
+
+    if (paymentResult === "success") {
+      toastSuccess(`Payment mil gaya! Order ${orderId} confirm ho raha hai.`);
+    } else if (paymentResult === "cancelled") {
+      toastError(`Payment cancel/fail ho gaya — order ${orderId} abhi bhi Cash on Delivery se ban sakta hai, ya dobara try karein.`);
+    }
+
+    // URL se yeh query params hata do taake refresh par dobara toast na aaye.
+    params.delete("payment");
+    params.delete("order_id");
+    const newSearch = params.toString();
+    window.history.replaceState({}, "", window.location.pathname + (newSearch ? `?${newSearch}` : ""));
+  }, []);
+
   // 🔒 SECURITY FIX: real Supabase session track karo — sirf isi ke
   // through admin panel unlock hota hai, koi UI-navigation trick se
   // nahi. Login/logout hone par yeh khud-b-khud update ho jata hai.
@@ -141,6 +167,15 @@ export default function BusinessAutomationSystem() {
   // products ki asal price se calculate karta hai (client se aane
   // wale price/total par bharosa nahi karta). Yahan sirf optimistic
   // UI update hota hai taake customer ko turant feedback mile.
+  //
+  // 💳 Payment integration: server jo order wapas bhejta hai usi mein
+  // asal DB id + payment_status hoti hai (client ka `order.id` sirf
+  // optimistic/random hai) — isi liye response aane ke baad optimistic
+  // entry ko (object-reference se dhoondh kar) server ke order se
+  // reconcile karte hain. Warna "Get Payment Link" jaisi koi bhi cheez
+  // jo order.id par depend karti hai client ke fake id ke sath DB mein
+  // order dhoondhne ki koshish karegi aur "Order nahi mila" milega.
+  // checkoutUrl bhi yahi se caller (Store.tsx) tak wapas jata hai.
   const handlePlaceOrder = async (order) => {
     products.forEach((p) => {
       const line = order.items.find((it) => it.productId === p.id);
@@ -174,6 +209,10 @@ export default function BusinessAutomationSystem() {
       ];
     });
 
+    let serverOrder = order;
+    let checkoutUrl = null;
+    let success = false;
+
     try {
       const res = await fetch("/api/place-order", {
         method: "POST",
@@ -187,9 +226,17 @@ export default function BusinessAutomationSystem() {
           channel: order.channel,
         }),
       });
-      if (!res.ok) {
-        const errBody = await res.text();
-        console.error("place-order API failed:", errBody);
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.success) {
+        console.error("place-order API failed:", data);
+      } else {
+        success = true;
+        checkoutUrl = data.checkoutUrl || null;
+        // Server ki id/status/payment_status hi asal truth hai — usi
+        // reference wale optimistic entries ko isi se replace karo.
+        serverOrder = { ...order, ...data.order };
+        setOrders((os) => os.map((o) => (o === order ? serverOrder : o)));
+        setPlacedOrders((os) => os.map((o) => (o === order ? serverOrder : o)));
       }
     } catch (err) {
       console.error("place-order API error:", err.message);
@@ -197,13 +244,16 @@ export default function BusinessAutomationSystem() {
 
     // Agar yeh order kisi waitlist reservation se match karta hai
     // (same product + same phone), to us reservation ko "converted"
-    // mark karo aur reserved stock free karo.
-    if (order.phone) {
-      order.items.forEach((line) => {
+    // mark karo aur reserved stock free karo. serverOrder.id use karte
+    // hain (client ka optimistic id nahi) taake asal DB record match ho.
+    if (serverOrder.phone) {
+      serverOrder.items.forEach((line) => {
         const product = products.find((p) => p.id === line.productId);
-        if (product) convertWaitlistIfMatched(product, order.phone, order.id, updateProductField);
+        if (product) convertWaitlistIfMatched(product, serverOrder.phone, serverOrder.id, updateProductField);
       });
     }
+
+    return { success, order: serverOrder, checkoutUrl };
   };
 
   const handleJoinWaitlist = async (product, customerName, phone, qty = 1) => {
