@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sidebar, Topbar } from "../components/layout";
 import { bodyFont } from "../theme";
@@ -41,6 +41,28 @@ export default function AdminApp({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [campaigns, setCampaigns] = useState(seedCampaigns());
+
+  // AI Assistant is no longer a routed page (it used to live inside
+  // renderView()'s switch, which meant switching sections unmounted it —
+  // that's what was cutting off in-progress voice replies mid-sentence).
+  // It's now a persistent overlay mounted once here, toggled between
+  // three states: "closed" (never opened yet), "minimized" (small
+  // floating bubble that keeps listening/speaking across every page),
+  // and "full" (the complete chat panel on top of everything).
+  const [assistantMode, setAssistantMode] = useState("closed");
+
+  // Sidebar's "AI Assistant" item no longer changes `section` — it just
+  // opens the overlay full-screen. Every other item behaves as before,
+  // except that if the assistant was open full-screen, picking a
+  // different section now minimizes it instead of closing it outright.
+  const handleSidebarSelect = (key) => {
+    if (key === "assistant") {
+      setAssistantMode("full");
+      return;
+    }
+    if (assistantMode === "full") setAssistantMode("minimized");
+    onSectionChange(key);
+  };
 
   const lowStock = products.filter((p) => p.stock <= p.threshold);
   const pendingOrders = orders.filter((o) => o.status === "pending");
@@ -247,32 +269,27 @@ export default function AdminApp({
       case "marketing":
         return <MarketingView campaigns={campaigns} onAdd={handleAddCampaign} />;
       case "assistant":
-        return (
-          <AssistantView
-            orders={orders}
-            products={products}
-            customers={customers}
-            campaigns={campaigns}
-            onAddProduct={handleAddProduct}
-            onEditProduct={handleEditProduct}
-            onDeleteProduct={handleDeleteProduct}
-            onUpdateStatus={handleUpdateStatus}
-            onAddCustomer={handleAddCustomer}
-            onAddCampaign={handleAddCampaign}
-            onCreateOrder={handleCreateOrder}
-            onSectionChange={onSectionChange}
-          />
-        );
+        // Deep link / back-button landed here from before this was an
+        // overlay — treat it like dashboard underneath, the effect below
+        // opens the assistant on top of it.
+        return <DashboardView orders={orders} products={products} customers={customers} onGoTo={onSectionChange} />;
       default:
         return null;
     }
   };
 
+  // Deep-link / browser-back compatibility: if `section` is "assistant"
+  // (an old link, or history from before this became an overlay), open
+  // the assistant overlay full-screen instead of silently showing nothing.
+  useEffect(() => {
+    if (section === "assistant" && assistantMode === "closed") setAssistantMode("full");
+  }, [section]);
+
   return (
     <div className="min-h-screen bg-app" style={{ fontFamily: bodyFont }}>
       <Sidebar
-        active={section}
-        onSelect={onSectionChange}
+        active={assistantMode === "full" ? "assistant" : section}
+        onSelect={handleSidebarSelect}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         lowStockCount={lowStock.length}
@@ -304,6 +321,33 @@ export default function AdminApp({
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Persistent AI Assistant overlay — mounted once, kept alive across
+          every section switch so voice input/output never gets cut off by
+          an unmount. Only actually rendered once the admin has opened it
+          at least once ("closed" state renders nothing). */}
+      {assistantMode !== "closed" && (
+        <AssistantView
+          mode={assistantMode}
+          orders={orders}
+          products={products}
+          customers={customers}
+          campaigns={campaigns}
+          onAddProduct={handleAddProduct}
+          onEditProduct={handleEditProduct}
+          onDeleteProduct={handleDeleteProduct}
+          onUpdateStatus={handleUpdateStatus}
+          onAddCustomer={handleAddCustomer}
+          onAddCampaign={handleAddCampaign}
+          onCreateOrder={handleCreateOrder}
+          onMinimize={() => setAssistantMode("minimized")}
+          onExpand={() => setAssistantMode("full")}
+          // Voice command like "inventory kholo" — AssistantView already
+          // minimizes itself before calling this, so the section switch
+          // underneath just happens normally.
+          onSectionChange={onSectionChange}
+        />
+      )}
     </div>
   );
 }
