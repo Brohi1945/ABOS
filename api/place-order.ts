@@ -16,6 +16,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { supabase, isSupabaseReady } from "./_lib/supabaseServer.js";
 import { sendOrderConfirmationEmail } from "./_lib/emailClient.js";
+import { isValidPakPhone } from "./_lib/validators.js";
+import { isSafepayReady, createSafepaySession, buildSafepayCheckoutUrl } from "./_lib/safepayClient.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
@@ -31,6 +33,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: "Order mein koi item nahi hai" });
+    }
+
+    // 🔒 Ghalat/fake phone number par order yahin reject ho jata hai —
+    // aage payment link/WhatsApp confirmation isi number par jani hai.
+    if (!isValidPakPhone(phone)) {
+      return res.status(400).json({ error: "Phone number sahi format mein nahi hai (03XXXXXXXXX)" });
     }
 
     const productIds = items.map((it: any) => it.productId);
@@ -102,7 +110,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    return res.status(200).json({ success: true, order });
+    // Order place hote hi Safepay checkout link bhi generate kar dete hain
+    // (best-effort — jaise email). Yeh link AI assistant WhatsApp/chat mein
+    // customer ko bhej sakta hai, ya dashboard se manually bheja ja sakta hai.
+    // COD customer isay ignore kar sakta hai — link expire ho jayega.
+    let checkoutUrl: string | null = null;
+    if (isSafepayReady()) {
+      try {
+        const origin = req.headers.origin || `https://${req.headers.host}`;
+        const { trackerToken, authToken } = await createSafepaySession(order.id, order.total);
+        checkoutUrl = buildSafepayCheckoutUrl({
+          trackerToken,
+          authToken,
+          redirectUrl: `${origin}/?payment=success&order_id=${order.id}`,
+          cancelUrl: `${origin}/?payment=cancelled&order_id=${order.id}`,
+        });
+        await supabase.from("orders").update({ safepay_tracker: trackerToken }).eq("id", order.id);
+      } catch (payErr: any) {
+        console.error("place-order: Safepay session banane mein error", payErr.message);
+      }
+    }
+
+    return res.status(200).json({ success: true, order, checkoutUrl });
   } catch (err: any) {
     console.error("place-order: unexpected error", err.message);
     return res.status(500).json({ error: "Kuch ghalat ho gaya, dobara try karein" });
